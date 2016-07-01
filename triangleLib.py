@@ -173,7 +173,7 @@ class Triangle:
         self.s2.setPoints(self.p2,self.p3)
         self.s3.setPoints(self.p3,self.p1)
 
-    def setPoints(p1,p2,p3):
+    def setPoints(self,p1,p2,p3):
         self.p1=p1
         self.p2=p2
         self.p3=p3
@@ -196,10 +196,6 @@ class Triangle:
 
     def circumCenter(self):
         self.createSys()
-        self.draw(ax)
-        self.u.draw(ax,self.p1)
-        self.v.draw(ax,self.p1)
-        self.w.draw(ax,self.p1)
 
 
         A1=Plane()
@@ -210,13 +206,21 @@ class Triangle:
         A2.setMediator(self.p2,self.p3)
         A3.set3Points(self.p1,self.p2,self.p3)
         vor=intersect3Planes(A1,A2,A3)
-        print '------------- CircumCenter Calcul ------------'
-        print distance(vor,t.p1) 
-        print distance(vor,t.p2) 
-        print distance(vor,t.p3) 
-        print '----------------------------------------------'
+        #print '------------- CircumCenter Calcul ------------'
+        #print distance(vor,self.p1) 
+        #print distance(vor,self.p2) 
+        #print distance(vor,self.p3) 
+        #print '----------------------------------------------'
         self.circumcenter=vor
         return vor
+    def gravityCenter(self):
+	pcg=Point()
+	xg=(self.p1.x+self.p2.x+self.p3.x)/3.
+	yg=(self.p1.y+self.p2.y+self.p3.y)/3.
+	zg=(self.p1.z+self.p2.z+self.p3.z)/3.
+	pcg.setPos(xg,yg,zg)
+	self.cg=pcg
+	return pcg
     def draw(t,ax):
         x=[t.p1.x,t.p2.x,t.p3.x]
         y=[t.p1.y,t.p2.y,t.p3.y]
