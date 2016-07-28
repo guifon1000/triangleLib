@@ -7,19 +7,11 @@ import math
 
 
 
-class Matplotlib3DWorld:
-    def __init__(self):
-        pass
-    def appendPoint(self,p,color,ax):
-        ax.scatter(p.x,p.y,p.z,color)
-    def appendTriangle(self,t,color,ax):
-        for p in t.p:
-            self.appendPoint(p,color,ax)
 class Point:
-    def __init__(self):
-        self.x=0.
-        self.y=0.
-        self.z=0.
+    def __init__(self,x=0.,y=0.,z=0.):
+        self.x=x
+        self.y=y
+        self.z=z
         self.index=-1
     def setPos(self,x,y,z):
         self.x=x
@@ -74,13 +66,24 @@ class Vector:
         self.z=z
         self.calcNorm0()
     def normalize(self):
+        self.calcNorm0()
         self.x=self.x/self.norm0
         self.y=self.y/self.norm0
         self.z=self.z/self.norm0
     def draw(self,ax,p):
         pp=p.addi(self)
         ax.plot([p.x,pp.x],[p.y,pp.y],[p.z,pp.z])
+        
+    def projectOnCoordinatesSystem(self,u0,v0,w0):
+        cx=u0.x*self.x+u0.y*self.y+u0.z*self.z
+        cy=v0.x*self.x+v0.y*self.y+v0.z*self.z
+        cz=w0.x*self.x+w0.y*self.y+w0.z*self.z
+        v=Vector()
+        v.set(cx,cy,cz)
+        return v
 
+
+        
 def cross(u,v, norm=True):
     pv=[]
     pv.append(u.y*v.z-u.z*v.y)
@@ -178,6 +181,10 @@ class Triangle:
         self.p2=p2
         self.p3=p3
     def createSys(self):
+        """
+        creates a coordinate system (u,v,w) for which u is aligned with the first
+        edge of the triangle
+        """
         v0=Vector()
         v1=Vector()
         v0.set(self.p2.x-self.p1.x,self.p2.y-self.p1.y,self.p2.z-self.p1.z)
@@ -186,9 +193,36 @@ class Triangle:
         v1.normalize()
         v2=cross(v0,v1)
         v3=cross(v2,v0)
+        v2.normalize()
+        v3.normalize()
         self.u=v0
         self.v=v3
         self.w=v2
+
+    def createLocalSys_X(self):
+        """
+        creates a coordinate system (u,v,w) for which w is the normal of the triangle
+        (as calculated by createSys) and we look for u to be as aligned as possible with
+        the global X direction
+        """
+        #if self.w.norm0 : print self.w.norm0
+        x=Vector()
+        x.set(1.,0.,0.)
+        try :
+            y2=cross(self.w,x)
+            y2.normalize()
+        except :
+            y2=Vector()
+            y2.set(0.,1.,0.)
+        x2=Vector()
+        x2=cross(y2,self.w)
+        x2.normalize()
+        
+        self.localSys=[x2,y2,self.w]
+        #print x2.norm0, y2.norm0, self.w.norm0
+        #print y2.norm0
+
+
     def middleIze(self):
         t.s1.middle()
         t.s2.middle()
@@ -196,23 +230,16 @@ class Triangle:
 
     def circumCenter(self):
         self.createSys()
-
-
         A1=Plane()
         A2=Plane()
         A3=Plane()
-     
         A1.setMediator(self.p1,self.p2)
         A2.setMediator(self.p2,self.p3)
         A3.set3Points(self.p1,self.p2,self.p3)
         vor=intersect3Planes(A1,A2,A3)
-        #print '------------- CircumCenter Calcul ------------'
-        #print distance(vor,self.p1) 
-        #print distance(vor,self.p2) 
-        #print distance(vor,self.p3) 
-        #print '----------------------------------------------'
         self.circumcenter=vor
         return vor
+    
     def gravityCenter(self):
 	pcg=Point()
 	xg=(self.p1.x+self.p2.x+self.p3.x)/3.
@@ -221,6 +248,11 @@ class Triangle:
 	pcg.setPos(xg,yg,zg)
 	self.cg=pcg
 	return pcg
+
+
+    
+
+
     def draw(t,ax):
         x=[t.p1.x,t.p2.x,t.p3.x]
         y=[t.p1.y,t.p2.y,t.p3.y]
@@ -232,7 +264,6 @@ class Triangle:
         ax.scatter(t.s1.mid.x,t.s1.mid.y,t.s1.mid.z)
         ax.scatter(t.s2.mid.x,t.s2.mid.y,t.s2.mid.z)
         ax.scatter(t.s3.mid.x,t.s3.mid.y,t.s3.mid.z)
-        
         ax.plot(x,y,z)
         
 

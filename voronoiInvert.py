@@ -5,7 +5,8 @@ import triangleLib as tl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
-
+import sys
+import readWrinkle as rwr
 
 tri=[]
 
@@ -57,6 +58,7 @@ faces=np.array(faces)
 
 
 
+
 def distance(p0,p1):
     d2=(p1[0]-p0[0])**2.+(p1[1]-p0[1])**2.+(p1[2]-p0[2])**2.
     return np.sqrt(d2)
@@ -102,7 +104,9 @@ for l in open('CHAMPS_PLIS.TEC',"r").readlines()[iStart:iEnd]:
         zm.append(float(val[2]))
 
 
-
+print '--------------------------------------'
+print 'MD : '+str(len(xm))+' faces'
+print '--------------------------------------'
 lpli=open('CHAMPS_PLIS.TEC',"r").readlines()
 
 princStress=[]
@@ -117,15 +121,20 @@ for i,l in enumerate(lpli):
             else:
                 l3=[float(ll) for ll in l2.split()]
                 princStress.append(l3)
-while [] in princStress:princStress.remove([])
 
+
+
+print '------------ Nettoyage ---------------'
+print len(princStress)
+while [] in princStress:princStress.remove([])
+print len(princStress)
         
 
 
 
 
 
-princStress=np.array(princStress)
+#princStress=np.array(princStress)
 
 sfValX=[]
 sfValY=[]
@@ -136,10 +145,11 @@ xg=[]
 yg=[]
 zg=[]
 chrono=[]
+cd=[0.]*len(faces)
 
-for f in faces:
-    
-    #print '------------ triangle -------------'
+
+triangulation=[tl.Triangle()]*len(faces)
+for h,f in enumerate(faces):
     t=tl.Triangle()
     p1=tl.Point()
     p2=tl.Point()
@@ -147,64 +157,39 @@ for f in faces:
     i1=f[0]
     p1.setPos(first[i1][0],first[i1][1],first[i1][2])
     i1=f[1]
-    p2.setPos(first[i1][0],first[i1][1],first[i1][2])    
+    p2.setPos(first[i1][0],first[i1][1],first[i1][2])
     i1=f[2]
     p3.setPos(first[i1][0],first[i1][1],first[i1][2])
     t.setPoints(p1,p2,p3)
-    #vor = t.circumCenter()
-    vor = t.gravityCenter()
-    xg.append(vor.x)
-    yg.append(vor.y)    
-    zg.append(vor.z)
-    Nf = np.size(lpli)
-    #lpli=[]
-    toRem=[]
-    dist=np.ones(Nf)*1000000000.
-    ind=[]
-    found=False
+    cc = t.circumCenter()
+    gc = t.gravityCenter()
+    triangulation[h]=t
 
- 
-    t0 = time.clock()
-    for lm in range(len(princStress)):
-        l=princStress[lm]
-        pref=tl.Point()
-        pref.setPos(float(l[0]),float(l[1]),float(l[2]))
-        dist[lm]=tl.distance(pref,vor)
-        ind.append(lm)
-
-        
-    mini=dist[np.argmin(dist)]
-    imin=np.argmin(dist)
-
-    for kk in range(np.size(dist)):
-        d=dist[kk]
-        
-        if d==mini:
-            toRem.append(princStress[ind[kk]])
-    for e in toRem:
-        print e
-        np.delete(princStress,e)
-    print len(princStress)
-    print toRem
-    t1 = time.clock()
-    chrono.append(t1-t0)
-
-plt.plot(range(len(chrono)),chrono)
-plt.show()
-
-pv.pointsToVTK("./pointsGF", np.array(xg), np.array(yg), np.array(zg),data = None)
-
-pv.pointsToVTK("./pointsMD", np.array(xm), np.array(ym), np.array(zm),data = None)
+for t in triangulation:
+    t.createLocalSys_X()
+    
+    
 
 
-
+val=['Contraintes_Principales']
+vtkd=rwr.createDict("CHAMPS_PLIS.TEC",addTriangulation=triangulation,values=val)
+#vtkd=rwr.VTKdict(d,triangulation,values=val)
+#rwr.expressVectorOnTriangles(vtkd,triangulation)
+for k in vtkd.keys(): print k, len(k)
 print '---------------------------------------------'
 
-
-tv.triangle_faces_to_VTK("mesh",
+tv.triangle_faces_to_VTK("mesh0",
                       x=xs, y=ys, z=zs,
                       faces=faces,
                       point_data=None,
-                      cell_data=None)
+                      cell_data= vtkd)
 
+ 
+
+
+print '    =============================================    '
+print '=====   dictionary created successfully  ============'
+print '    =============================================    '
+   #print len(princStress)
+   #print (float(h)/len(faces))*100.," % complete         \r",
     

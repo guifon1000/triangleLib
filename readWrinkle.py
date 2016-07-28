@@ -33,6 +33,7 @@ def createDict(name, addTriangulation=None,values=None):
             triMat=[]
             vtkd[k+'_X']=np.zeros(len(addTriangulation))
             vtkd[k+'_Y']=np.zeros(len(addTriangulation))
+            vtkd[k+'_Z']=np.zeros(len(addTriangulation))
             for i in range(len(fl)):
                 itot=-1
                 if str(k) in fl[i]:
@@ -42,12 +43,12 @@ def createDict(name, addTriangulation=None,values=None):
                                 break
                             
                             arPoint=[float(x) for x in fl[j].split()[0:3]]
-                            values=[abs(float(x)) for x in fl[j].split()[3:5]]
+                            values=[abs(float(x)) for x in fl[j].split()[3:6]]
                             pp=tl.Point()
                             pp.setPos(arPoint[0],arPoint[1],arPoint[2])
                             dd=-1.
                             intr=False
-                            if len(appendedPoints)==0:itr=0
+                            if len(appendedPoints)==0:intr=False
                             for l,ap in enumerate(appendedPoints[::-1]):
                                 pa=tl.Point()
                                 pa.setPos(ap[0],ap[1],ap[2])
@@ -61,19 +62,59 @@ def createDict(name, addTriangulation=None,values=None):
                                 v=arPoint
                                 v.append(abs(values[0]))
                                 v.append(abs(values[1]))
-                                vtkd[k+'_X'][itr]=values[0]
-                                vtkd[k+'_Y'][itr]=values[1]
+                                #vs=tl.Vector()
+                                #vs.set(values[0],values[1],values[2])
+                                #vs.projectOnCoordinatesSystem(self.localSys[0],self.localSys[1],self.localSys[2])
+                                minDis=1.e12
+                                itt=None
+                                for kt,t in enumerate(addTriangulation):
+                                    ptl=tl.Point()
+                                    ptl.setPos(arPoint[0],arPoint[1],arPoint[2])
+                                    if tl.distance(t.cg,ptl)<minDis:
+                                        minDis=tl.distance(t.cg,ptl)
+                                        itt=kt
+
+                                    
+                                vtkd[k+'_X'][itt]=values[0]
+                                vtkd[k+'_Y'][itt]=values[1]
+                                vtkd[k+'_Z'][itt]=values[2]
                                 appendedPoints.append(arPoint)
                                 itot+=1
                                 print (float(itot)/len(addTriangulation)*100.)," % done           \r",
                             else: 
                                 vtkd[k+'_X'][itr]+=values[0]
                                 vtkd[k+'_Y'][itr]+=values[1]
-                              
-        return vtkd
+                                vtkd[k+'_Z'][itr]+=values[2]
+        di2={}                      
+        for k in d.keys():
+            di2[k]=[[0.,0.,0.]]*len(addTriangulation)
+            cvb=[]
+            for j in range(len(addTriangulation)):
+                t=addTriangulation[j]
+                v=tl.Vector()
+                v.set(vtkd[k+'_X'][j],vtkd[k+'_Y'][j],vtkd[k+'_Z'][j])
+                vc=v.projectOnCoordinatesSystem(t.localSys[0],t.localSys[1],t.localSys[2])
+                di2[k][j]=np.abs([vc.x,vc.y,vc.z])
+        di3={}
+        for k in di2.keys():
+            di3[k+'_X']=np.array([di2[k][jj][0] for jj in range(len(addTriangulation))])
+            di3[k+'_Y']=np.array([di2[k][jj][1] for jj in range(len(addTriangulation))])
+            di3[k+'_Z']=np.array([di2[k][jj][2] for jj in range(len(addTriangulation))])
+        print di3
+        return di3
+            
+        
                     
 
-
+def expressVectorOnTriangles(vtkd,addTriangulation):
+    vtk2={}
+    for i,t in enumerate(addTriangulation):
+        for k in vtkd.keys():
+            vec=tl.Vector()
+            
+            
+            
+        
 
     
 def VTKdict(d,triangulation,values=None):
