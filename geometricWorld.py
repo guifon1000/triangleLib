@@ -7,13 +7,16 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
 import sys
+import vlm0 as vlm
+import asciiArt
+
+name='sail'
+
+Nu=10
+Nv=10
 
 
-name='zozozob'
-
-Nu=80
-Nv=150
-
+asciiArt.openFile('minusEtCortex2')
 #class Quad:
 
 """
@@ -26,46 +29,37 @@ Nv=150
 D<---------C
            
 """
-A=tl.Point(-0.05,0.05,10.)
-B=tl.Point(0.,0.,10.)
-C=tl.Point(0.,0.,0.)
-D=tl.Point(-3.75,1.25,0.)
 
-d={}
-d['zero']=np.array([0.,0.])
-tv.triangle_faces_to_VTK(name+'all',
-                      x=np.array([A.x,B.x,C.x,D.x]), y=np.array([A.y,B.y,C.y,D.y]), z=np.array([A.z,B.z,C.z,D.z]),
-                      faces=np.array([[0,1,2],[2,0,3]]),
-                      point_data=None,
-                      cell_data= d)
-
-pts=[]
-
-for i in range(Nu):
-    realI=float(i)/float(Nu-1)
-    cprime=tl.Point(C.x+realI*(B.x-C.x),C.y+realI*(B.y-C.y),C.z+realI*(B.z-C.z))
-    dprime=tl.Point(D.x+realI*(A.x-D.x),D.y+realI*(A.y-D.y),D.z+realI*(A.z-D.z))
-    for j in range(Nv):
-        realJ=float(j)/float(Nv-1)
-        pts.append(tl.Point(cprime.x+realJ*(dprime.x-cprime.x),cprime.y+realJ*(dprime.y-cprime.y),cprime.z+realJ*(dprime.z-cprime.z)))
-     
-ip=0
-faces=[]
-for i in range(Nu-1):
-    for j in range(Nv-1):
-        ip+=1
-        if np.mod(ip,Nv)==0 : ip+=1
-        print ip,ip+1,ip+Nu+1,ip+Nu
-        print ip,ip+1,ip+Nu+1
-        print ip,ip+Nu+1,ip+Nu
-        print '----------------------'
-        faces.append([ip-1,ip,ip+Nv])
-        faces.append([ip-1,ip+Nv,ip+Nv-1])
-print faces
-tv.triangle_faces_to_VTK(name+'rect',
-                      x=np.array([p.x for p in pts]) , y=np.array([p.y for p in pts]), z=np.array([p.z for p in pts]),
-                      faces=np.array(faces),
-                      point_data=None,
-                      cell_data= None)
+A=tl.Point(1.,1.,0.)
+B=tl.Point(-1.,1,0.)
+C=tl.Point(-1.,-1.,0.)
+D=tl.Point(1.,-1.,0.)
 
 
+#q0=tl.Quad(A,B,C,D)
+#q0.subQuad(Nu,Nv)
+#q0.facetize()
+
+pan=tl.Panel(A,B,C,D)
+
+vel=[]
+elem=[]
+fs=vlm.freeStream(10.,0.,0.)
+normal=tl.Vector(0.,-1.,0.)
+elem.append(fs)
+#elem.append(vlm.Source(1.,0.,-0.1,0.))
+#elem.append(vlm.Doublet(1.,-1.,1.,0.,normal))
+#elem.append(vlm.Source(-100.,0.,0.1,0.))
+
+f=1.
+
+
+elem.append(vlm.lineVortex(A,B,f))
+elem.append(vlm.lineVortex(B,C,f))
+elem.append(vlm.lineVortex(C,D,f))
+elem.append(vlm.lineVortex(D,A,f))
+
+mesh = vlm.Mesh(50,50,50,100.,100.,100.)
+mesh.compute(elem)
+mesh.writeVTK()
+asciiArt.openFile('snoopy')

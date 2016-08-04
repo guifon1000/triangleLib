@@ -7,12 +7,19 @@ import math
 
 
 
+
+
+
 class Point:
     def __init__(self,x=0.,y=0.,z=0.):
         self.x=x
         self.y=y
         self.z=z
         self.index=-1
+    def __str__(self):
+        string=''
+        string += str((self.x,self.y,self.z))
+        return string
     def setPos(self,x,y,z):
         self.x=x
         self.y=y
@@ -49,10 +56,11 @@ class Segment:
 
 
 class Vector:
-    def __init__(self):
-        self.x=0.
-        self.y=0.
-        self.z=0.
+    def __init__(self,x=0.,y=0.,z=0.):
+        self.x=x
+        self.y=y
+        self.z=z
+        self.norm0=math.sqrt(self.x**2+self.y**2+self.z**2)
     def fromPoints(self,A,B):
         self.x=B.x-A.x
         self.y=B.y-A.y
@@ -73,7 +81,10 @@ class Vector:
     def draw(self,ax,p):
         pp=p.addi(self)
         ax.plot([p.x,pp.x],[p.y,pp.y],[p.z,pp.z])
-        
+    def __str__(self):
+        string=''
+        string += str((self.x,self.y,self.z))
+        return string
     def projectOnCoordinatesSystem(self,u0,v0,w0):
         cx=u0.x*self.x+u0.y*self.y+u0.z*self.z
         cy=v0.x*self.x+v0.y*self.y+v0.z*self.z
@@ -83,16 +94,115 @@ class Vector:
         return v
 
 
+
+class Panel:
+    """
+    
+    p0 ----> p1                  p0 <------ p1                  p1                                                                                                     
+     ^ \   / |                      \   0  ^                   ^ |                                                                                                  
+     |  \ /  |    ____|\             \    /                   /  |                                                                                              
+     |   X c0|          \             \  /          +        /   |
+     |  / \  |    ____  /              v                   c0    |                                                                                        
+     | /   \ v        |/               c0                    ^   | 
+    p3 <--- p2                                                \  | 
+                                                               \ v
+                                                                p2
+                                   t:                             
+
+    """                                                         
+    def __init__(self,p0,p1,p2,p3):
+        x0=0.25*(p0.x+p1.x+p2.x+p3.x) 
+        y0=0.25*(p0.y+p1.y+p2.y+p3.y) 
+        z0=0.25*(p0.z+p1.z+p2.z+p3.z) 
+        cent0=Point(x0,y0,z0)
+        t0=Triangle()
+        t1=Triangle()
+        t2=Triangle()
+        t3=Triangle()
+        t0.setPoints(p0,p1,cent0)
+        t1.setPoints(p0,p3,cent0)
+        t2.setPoints(p2,p3,cent0)
+        t3.setPoints(p1,p2,cent0)
         
+        #t0
+        n0=Vector()
+        n0.fromPoints(cent0,p0)
+        n1=Vector()
+        n1.fromPoints(cent0,p1)
+        n2=Vector()
+        n2.fromPoints(cent0,p2)
+        n3=Vector()
+        n3.fromPoints(cent0,p3)
+        
+
+        n0 = cross(n3,n0,norm=False)
+        n1 = cross(n0,n1,norm=False)
+        n2 = cross(n1,n2,norm=False)
+        n3 = cross(n2,n3,norm=False)
+        
+        ng=Vector()
+        ng.set(0.25*(n0.x+n1.x+n2.x+n3.x),\
+                0.25*(n0.y+n1.y+n2.y+n3.y),\
+                0.25*(n0.z+n1.z+n2.z+n3.z))
+
+        print n0
+        print n1
+        print n2
+        print n3
+        print ng
+
+class bigQuad:
+    def __init__(self,p0,p1,p2,p3):
+        self.p0=p0
+        self.p1=p1
+        self.p2=p2
+        self.p3=p3
+        self.pts=[p0,p1,p2,p3]
+        self.faces=[[2,3,0],[2,0,1]]
+        self.Nu=2
+        self.Nv=2
+    def subQuad(self,Nu,Nv):
+        A=self.p0
+        B=self.p1
+        C=self.p2
+        D=self.p3
+        pts=[] 
+        for i in range(Nu):
+            realI=float(i)/float(Nu-1)
+            cprime = Point(C.x+realI*(B.x-C.x),C.y+realI*(B.y-C.y),C.z+realI*(B.z-C.z))
+            dprime = Point(D.x+realI*(A.x-D.x),D.y+realI*(A.y-D.y),D.z+realI*(A.z-D.z))
+            for j in range(Nv):
+                realJ=float(j)/float(Nv-1)
+                pts.append(Point(cprime.x+realJ*(dprime.x-cprime.x),cprime.y+realJ*(dprime.y-cprime.y),cprime.z+realJ*(dprime.z-cprime.z)))
+        self.Nu=Nu
+        self.Nv=Nv
+        self.pts=pts
+    def facetize(self):
+        ip=0
+        faces=[]
+        for i in range(self.Nu-1):
+            for j in range(self.Nv-1):
+                ip+=1
+                if np.mod(ip,self.Nv)==0 : ip+=1
+                faces.append([ip-1,ip,ip+self.Nv])
+                faces.append([ip-1,ip+self.Nv,ip+self.Nv-1])
+        self.faces=faces 
+
 def cross(u,v, norm=True):
     pv=[]
     pv.append(u.y*v.z-u.z*v.y)
     pv.append(u.z*v.x-u.x*v.z)
     pv.append(u.x*v.y-u.y*v.x)
-    vp=Vector()
-    vp.set(pv[0],pv[1],pv[2])
+    vp=Vector(pv[0],pv[1],pv[2])
     if norm:vp.normalize()
     return vp
+
+def dot(u,v):
+    return u.x*v.x+u.y*v.y+u.z*v.z
+
+def angle(u,v):
+    angle = np.arctan2(cross(u,v,norm=False).norm0,dot(u,v))
+    return angle
 
 class Plane:
     """
@@ -130,6 +240,8 @@ class Plane:
         self.b=v.y
         self.c=v.z
         self.d=-(v.x*A.x+v.y*A.y+v.z*A.z)
+    def setPointNormal(self,p,normal):
+        print 'zob'
     def draw(self,ax):
         xx, yy = np.meshgrid(range(10), range(10))
         z=(-self.d-self.a*xx-self.b*yy)/self.c
