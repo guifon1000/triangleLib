@@ -12,7 +12,7 @@ import asciiArt
 
 name='sail'
 
-Nu=10
+Nu=50
 Nv=10
 
 
@@ -30,21 +30,64 @@ D<---------C
            
 """
 
-A=tl.Point(1.,1.,0.)
-B=tl.Point(-1.,1,0.)
-C=tl.Point(-1.,-1.,0.)
-D=tl.Point(1.,-1.,0.)
+A=tl.Point(-1.,1.,0.01)
+B=tl.Point(1.,1.,0.)
+C=tl.Point(1.,-1.,0.)
+D=tl.Point(-1.,-1.,0.01)
 
 
-#q0=tl.Quad(A,B,C,D)
-#q0.subQuad(Nu,Nv)
-#q0.facetize()
+A=tl.Point(-1.,1.,0.08)
+B=tl.Point(1.,0.4,0.)
+C=tl.Point(1.,-1.,0.)
+D=tl.Point(-1.,-1.,-0.08)
 
-pan=tl.Panel(A,B,C,D)
 
-vel=[]
+fs=vlm.freeStream(1.,0.,0.)
+
+q0=tl.bigQuad(A,B,C,D)
+q0.subQuad(Nu,Nv)
+q0.facetize()
+
+
+
+
+tab=[]
+rht=[]
+for q in q0.quads:
+    tab.append(vlm.dipolePanel(q.p0,q.p1,q.p2,q.p3))
+
+sfce=vlm.Surface(tab,q0)
+sfce.dipoleMatrix(sfce.tab)
+
+print sfce.M
+plt.matshow(sfce.M)
+plt.colorbar()
+plt.show()
+
+for q in sfce.tab:
+    rht.append(-tl.dot(fs.v,q.pan.ng))
+rht=np.array(rht)
+print " right hand term"
+print rht
+print ''
+print ''
+
+
 elem=[]
-fs=vlm.freeStream(10.,0.,0.)
+mu = np.dot(np.linalg.inv(sfce.M),np.transpose(rht))
+
+sfce.addCellData(rht,'rht')
+sfce.addCellData(mu,'mu')
+sfce.writeVTK('mumu')
+
+#print mu
+
+
+for i,p in enumerate(tab):
+    p.setIntensity(mu[i])
+    elem.append(p) 
+print '-----------------------------------------------------------'
+vel=[]
 normal=tl.Vector(0.,-1.,0.)
 elem.append(fs)
 #elem.append(vlm.Source(1.,0.,-0.1,0.))
@@ -54,12 +97,8 @@ elem.append(fs)
 f=1.
 
 
-elem.append(vlm.lineVortex(A,B,f))
-elem.append(vlm.lineVortex(B,C,f))
-elem.append(vlm.lineVortex(C,D,f))
-elem.append(vlm.lineVortex(D,A,f))
+#mesh = vlm.Mesh(10,10,10,10.,10.,10.)
+#mesh.compute(elem)
 
-mesh = vlm.Mesh(50,50,50,100.,100.,100.)
-mesh.compute(elem)
-mesh.writeVTK()
+#mesh.writeVTK()
 asciiArt.openFile('snoopy')

@@ -1,5 +1,6 @@
 import numpy as np
 import triangleLib as tl
+import triangles_to_VTK as tv
 import matplotlib.pyplot as plt
 import pyevtk.hl as vhl
 
@@ -77,7 +78,7 @@ class Mesh:
 class freeStream(fluidPoint):
     def __init__(self,ux,uy,uz):
         self.p=tl.Point(0.,0.,0.)
-        self.v=[ux,uy,uz]
+        self.v=tl.Vector(ux,uy,uz)
     def getVelocity(self,X,Y,Z):
         return self.v
 
@@ -118,9 +119,64 @@ class lineVortex:
         ux = self.gamma/(4.*np.pi)*pv.x/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
         uy = self.gamma/(4.*np.pi)*pv.y/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
         uz = self.gamma/(4.*np.pi)*pv.z/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
+        #print ux
+        return tl.Vector(ux,uy,uz)
+
+
+class dipolePanel:
+    def __init__(self,p0,p1,p2,p3):
+        self.p0 = p0
+        self.p1 = p1
+        self.p2 = p2
+        self.p3 = p3
+        self.pan = tl.Panel(p0,p1,p2,p3)
+        self.cg = self.pan.cg
+        self.n = self.pan.ng
+        self.intensity = 0.
+    def setIntensity(self,intensity):
+        self.intensity = intensity
+    def influence(self,other):
+        l0 = lineVortex(self.p0,self.p1,1.)
+        l1 = lineVortex(self.p1,self.p2,1.)
+        l2 = lineVortex(self.p2,self.p3,1.)
+        l3 = lineVortex(self.p3,self.p1,1.)
+        p = other.cg
+        return tl.dot(l0.getVelocity(p.x,p.y,p.z),other.n)
+    def getVelocity(self,x,y,z):
+        l0 = lineVortex(self.p0,self.p1,self.intensity)
+        l1 = lineVortex(self.p1,self.p2,self.intensity)
+        l2 = lineVortex(self.p2,self.p3,self.intensity)
+        l3 = lineVortex(self.p3,self.p1,self.intensity)
+        ux = l0.getVelocity(x,y,z)[0]+l1.getVelocity(x,y,z)[0]+l2.getVelocity(x,y,z)[0]+l3.getVelocity(x,y,z)[0]
+        uy = l0.getVelocity(x,y,z)[1]+l1.getVelocity(x,y,z)[1]+l2.getVelocity(x,y,z)[1]+l3.getVelocity(x,y,z)[1]
+        uz = l0.getVelocity(x,y,z)[2]+l1.getVelocity(x,y,z)[2]+l2.getVelocity(x,y,z)[2]+l3.getVelocity(x,y,z)[2]
+        #print x
         return [ux,uy,uz]
 
+class Surface:
+    def __init__(self,tab,sf):   # sf is a bigQuad
+        self.tab = tab
+        self.bigquad = sf
+        self.cell_data = {}
+        self.point_data = {}
 
+    def dipoleMatrix(self,tab):
+        mat=np.zeros((len(tab),len(tab)))
+        for i,pi in enumerate(tab):  
+            for j,pj in enumerate(tab):  
+                mat[i,j] = pj.influence(pi)
+        self.M=mat
+
+    def addCellData(self,val,name,quad=True):
+        tmp=[]
+        for i in range((self.bigquad.Nu-1)*(self.bigquad.Nv-1)):
+            tmp.append(val[i])
+            tmp.append(val[i])
+        self.cell_data[name]=np.array(tmp)
+    def writeVTK(self,name):
+        tv.triangle_faces_to_VTK(name,self.bigquad.X,self.bigquad.Y,self.bigquad.Z,np.array(self.bigquad.faces),None,self.cell_data)
+        
+    
 class Doublet(fluidPoint):
     def __init__(self,kappa,x,y,z,normal):
         self.kappa=kappa

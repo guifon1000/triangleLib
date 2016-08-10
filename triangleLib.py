@@ -54,13 +54,16 @@ class Segment:
         self.mid.z=0.5*(self.p1.z+self.p2.z)
 
 
-
 class Vector:
     def __init__(self,x=0.,y=0.,z=0.):
         self.x=x
         self.y=y
         self.z=z
-        self.norm0=math.sqrt(self.x**2+self.y**2+self.z**2)
+        self.norm0 = math.sqrt(self.x**2+self.y**2+self.z**2)
+    def __getitem__(self,i):
+        if i == 0:return self.x
+        if i == 1:return self.y
+        if i == 2:return self.z
     def fromPoints(self,A,B):
         self.x=B.x-A.x
         self.y=B.y-A.y
@@ -111,45 +114,39 @@ class Panel:
 
     """                                                         
     def __init__(self,p0,p1,p2,p3):
+        self.p0 = p0
+        self.p1 = p1
+        self.p2 = p2
+        self.p3 = p3
         x0=0.25*(p0.x+p1.x+p2.x+p3.x) 
         y0=0.25*(p0.y+p1.y+p2.y+p3.y) 
         z0=0.25*(p0.z+p1.z+p2.z+p3.z) 
         cent0=Point(x0,y0,z0)
-        t0=Triangle()
-        t1=Triangle()
-        t2=Triangle()
-        t3=Triangle()
-        t0.setPoints(p0,p1,cent0)
-        t1.setPoints(p0,p3,cent0)
-        t2.setPoints(p2,p3,cent0)
-        t3.setPoints(p1,p2,cent0)
+        self.cg = cent0
         
-        #t0
-        n0=Vector()
-        n0.fromPoints(cent0,p0)
-        n1=Vector()
-        n1.fromPoints(cent0,p1)
-        n2=Vector()
-        n2.fromPoints(cent0,p2)
-        n3=Vector()
-        n3.fromPoints(cent0,p3)
+        d0=Vector()
+        d0.fromPoints(cent0,p0)
+        d1=Vector()
+        d1.fromPoints(cent0,p1)
+        d2=Vector()
+        d2.fromPoints(cent0,p2)
+        d3=Vector()
+        d3.fromPoints(cent0,p3)
         
 
-        n0 = cross(n3,n0,norm=False)
-        n1 = cross(n0,n1,norm=False)
-        n2 = cross(n1,n2,norm=False)
-        n3 = cross(n2,n3,norm=False)
+        n0 = cross(d3,d0,norm=False)
+        n1 = cross(d0,d1,norm=False)
+        n2 = cross(d1,d2,norm=False)
+        n3 = cross(d2,d3,norm=False)
         
-        ng=Vector()
-        ng.set(0.25*(n0.x+n1.x+n2.x+n3.x),\
-                0.25*(n0.y+n1.y+n2.y+n3.y),\
-                0.25*(n0.z+n1.z+n2.z+n3.z))
+        self.ng=Vector()
+        self.ng.set(0.25*(n0.x+n1.x+n2.x+n3.x),\
+                    0.25*(n0.y+n1.y+n2.y+n3.y),\
+                    0.25*(n0.z+n1.z+n2.z+n3.z))
+        self.ng.normalize()
+          
 
-        print n0
-        print n1
-        print n2
-        print n3
-        print ng
+
 
 class bigQuad:
     def __init__(self,p0,p1,p2,p3):
@@ -166,27 +163,48 @@ class bigQuad:
         B=self.p1
         C=self.p2
         D=self.p3
-        pts=[] 
+        pts=[]
+        x = []
+        y = []
+        z = []
         for i in range(Nu):
             realI=float(i)/float(Nu-1)
             cprime = Point(C.x+realI*(B.x-C.x),C.y+realI*(B.y-C.y),C.z+realI*(B.z-C.z))
             dprime = Point(D.x+realI*(A.x-D.x),D.y+realI*(A.y-D.y),D.z+realI*(A.z-D.z))
             for j in range(Nv):
                 realJ=float(j)/float(Nv-1)
-                pts.append(Point(cprime.x+realJ*(dprime.x-cprime.x),cprime.y+realJ*(dprime.y-cprime.y),cprime.z+realJ*(dprime.z-cprime.z)))
+                pij = Point(cprime.x+realJ*(dprime.x-cprime.x),cprime.y+realJ*(dprime.y-cprime.y),cprime.z+realJ*(dprime.z-cprime.z))  
+                pts.append(pij)
+                x.append(pij.x)
+                y.append(pij.y)
+                z.append(pij.z)
         self.Nu=Nu
         self.Nv=Nv
         self.pts=pts
+        self.X=np.array(x)
+        self.Y=np.array(y)
+        self.Z=np.array(z)
     def facetize(self):
         ip=0
         faces=[]
+        quads=[]
+        
         for i in range(self.Nu-1):
             for j in range(self.Nv-1):
-                ip+=1
                 if np.mod(ip,self.Nv)==0 : ip+=1
                 faces.append([ip-1,ip,ip+self.Nv])
                 faces.append([ip-1,ip+self.Nv,ip+self.Nv-1])
+                f0=[ip-1,ip,ip+self.Nv]
+                f1=[ip-1,ip+self.Nv,ip+self.Nv-1]
+                print 'panel # '+str(ip)+' : '+str([ip-1,ip,ip+self.Nv,ip+self.Nv-1])
+                p0=self.pts[ip-1]
+                p1=self.pts[ip]
+                p2=self.pts[ip+self.Nv]
+                p3=self.pts[ip+self.Nv-1]
+                quads.append(Panel(p0,p1,p2,p3))
+                ip+=1
         self.faces=faces 
+        self.quads = quads
 
 def cross(u,v, norm=True):
     pv=[]
