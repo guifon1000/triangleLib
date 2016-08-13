@@ -12,8 +12,8 @@ import asciiArt
 
 name='sail'
 
-Nu=50
-Nv=10
+Nu=5
+Nv=5
 
 
 asciiArt.openFile('minusEtCortex2')
@@ -30,23 +30,57 @@ D<---------C
            
 """
 
-A=tl.Point(-1.,1.,0.01)
-B=tl.Point(1.,1.,0.)
-C=tl.Point(1.,-1.,0.)
-D=tl.Point(-1.,-1.,0.01)
-
-
-A=tl.Point(-1.,1.,0.08)
-B=tl.Point(1.,0.4,0.)
-C=tl.Point(1.,-1.,0.)
-D=tl.Point(-1.,-1.,-0.08)
-
-
+A=tl.Point(-1.,2.,0.3)
+B=tl.Point(1.,2.,-0.9)
+C=tl.Point(1.,-2.,-0.6)
+D=tl.Point(-1.,-2.,0.9)
 fs=vlm.freeStream(1.,0.,0.)
 
 q0=tl.bigQuad(A,B,C,D)
 q0.subQuad(Nu,Nv)
 q0.facetize()
+
+
+#A=vlm.fluidPoint(-42.,-50.,-100.)
+#B=vlm.fluidPoint(42.,50.,100.)
+#lv=vlm.lineVortex(A,B,1000.)
+
+
+#plt.clf()
+#leg=[]
+#for x in np.arange(0.5,2.,0.05):
+#    z=0.
+#    absc=[]
+#    ordo=[]
+#    leg.append('x = '+str(x))
+#    for y in np.arange(-5.,5.,0.01) :
+#        plo = lv.getVelocity(x,y,z)
+#        vp = tl.Vector(plo[0],plo[1],plo[2]).norm0
+#        absc.append(y)
+#        ordo.append(vp)
+#    plt.plot(absc,ordo,'.')
+#    plt.xlabel('y')
+#    plt.ylabel('normV')
+#    #plt.legend(leg)
+#plt.show()
+#
+
+
+#plt.clf()
+#Np=1000
+#d=8.
+#mat=np.zeros((Np,Np))
+#for i in range(Np):
+#    for j in range(Np):
+#        z = 0.
+#        x = -d+(2.*d)*i/float(Np)
+#        y = -d+(2.*d)*j/float(Np)
+#        v = lv.getVelocity(x,y,z)
+#        val = tl.Vector(v[0],v[1],v[2]).norm0
+#        mat[i][j]=val
+#plt.pcolor(mat)
+#plt.colorbar()
+#plt.show()
 
 
 
@@ -59,6 +93,7 @@ for q in q0.quads:
 sfce=vlm.Surface(tab,q0)
 sfce.dipoleMatrix(sfce.tab)
 
+plt.clf()
 print sfce.M
 plt.matshow(sfce.M)
 plt.colorbar()
@@ -74,7 +109,7 @@ print ''
 
 
 elem=[]
-mu = np.dot(np.linalg.inv(sfce.M),np.transpose(rht))
+mu = np.dot(np.linalg.inv(sfce.M),rht)
 
 sfce.addCellData(rht,'rht')
 sfce.addCellData(mu,'mu')
@@ -85,11 +120,64 @@ sfce.writeVTK('mumu')
 
 for i,p in enumerate(tab):
     p.setIntensity(mu[i])
-    elem.append(p) 
+    elem.append(p)
+
+#elem=[]
+elem.append(fs)
+
+
+
+
+A=tl.Point(-1.,-100.,0.)
+B=tl.Point(-1.,100.,0.)
+
+
+C=tl.Point(1.,-100.,0.)
+D=tl.Point(1.,100.,-0.)
+
+
+
+l0=vlm.lineVortex(A,B,1.)
+l1=vlm.lineVortex(C,D,1.)
+
+
+
+#elem.append(l0)
+#elem.append(l1)
+
+
+
+
+
+
+
+
+
+
+plt.clf()
+Np=3
+d=4.
+mat=np.zeros((Np,Np))
+for i in range(Np):
+    for j in range(Np):
+        y = 0.
+        x = -d+(2.*d)*j/float(Np)
+        z = -d+(2.*d)*i/float(Np)
+        v=tl.Vector()
+        for k,p in enumerate(elem):
+            v += p.getVelocity(x,y,z)
+        val = tl.Vector(v[0],v[1],v[2]).norm0
+        mat[i][j]=val
+plt.pcolor(mat)
+plt.colorbar()
+plt.show()
+
+
 print '-----------------------------------------------------------'
 vel=[]
 normal=tl.Vector(0.,-1.,0.)
-elem.append(fs)
+
+#elem.append(lv)
 #elem.append(vlm.Source(1.,0.,-0.1,0.))
 #elem.append(vlm.Doublet(1.,-1.,1.,0.,normal))
 #elem.append(vlm.Source(-100.,0.,0.1,0.))
@@ -97,8 +185,8 @@ elem.append(fs)
 f=1.
 
 
-#mesh = vlm.Mesh(10,10,10,10.,10.,10.)
-#mesh.compute(elem)
+mesh = vlm.Mesh(50,50,50,5.,5.,5.)
+mesh.compute(elem)
 
-#mesh.writeVTK()
+mesh.writeVTK()
 asciiArt.openFile('snoopy')

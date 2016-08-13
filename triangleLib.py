@@ -64,6 +64,8 @@ class Vector:
         if i == 0:return self.x
         if i == 1:return self.y
         if i == 2:return self.z
+    def __add__(self,other):
+        return Vector(self.x+other.x,self.y+other.y,self.z+other.z)
     def fromPoints(self,A,B):
         self.x=B.x-A.x
         self.y=B.y-A.y

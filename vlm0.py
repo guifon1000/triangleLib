@@ -11,6 +11,9 @@ class fluidPoint:
         self.magVel=0.
         self.streamFunction=0.
         self.potential=0.
+        self.x=self.p.x
+        self.y=self.p.y
+        self.z=self.p.z
     def computeVelocity(self,others):
         self.vel=[0.,0.,0.]
         self.magVel=0.
@@ -42,16 +45,16 @@ class Mesh:
         self.y = np.zeros((Nx, Ny, Nz)) 
         self.z = np.zeros((Nx, Ny, Nz))
         self.cells=[]
-        for k in range(Nz): 
+        for i in range(Nx): 
             for j in range(Ny):
-                for i in range(Nx): 
+                for k in range(Nz): 
                     self.x[i,j,k] = X[i] 
                     self.y[i,j,k] = Y[j]
                     self.z[i,j,k] = Z[k]
         ic=-1
-        for k in range(Nz-1):
+        for i in range(Nx-1):
             for j in range(Ny-1):
-                for i in range(Nx-1):
+                for k in range(Nz-1):
                     ic+=1
                     xc=(1./8.)*(self.x[i,j,k]+self.x[i+1,j,k]+self.x[i,j+1,k]+self.x[i,j,k+1]+self.x[i+1,j+1,k]+self.x[i,j+1,k+1]+self.x[i+1,j,k+1]+self.x[i+1,j+1,k+1])
                     yc=(1./8.)*(self.y[i,j,k]+self.y[i+1,j,k]+self.y[i,j+1,k]+self.y[i,j,k+1]+self.y[i+1,j+1,k]+self.y[i,j+1,k+1]+self.y[i+1,j,k+1]+self.y[i+1,j+1,k+1])
@@ -108,19 +111,23 @@ class lineVortex:
         self.p2=B
         self.gamma=gamma
     def getVelocity(self,x,y,z):
-        M=fluidPoint(x,y,z)
-        rn1=tl.Vector()
-        rn1.fromPoints(M.p,self.p1)
-        rn2=tl.Vector()
-        rn2.fromPoints(M.p,self.p2)
-        pv=tl.cross(rn1,rn2,norm=False)
-        ps=tl.dot(rn1,rn2)
-        
-        ux = self.gamma/(4.*np.pi)*pv.x/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
-        uy = self.gamma/(4.*np.pi)*pv.y/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
-        uz = self.gamma/(4.*np.pi)*pv.z/pv.norm0**2.*(rn1.norm0+rn2.norm0)*(1.-ps)/(rn1.norm0*rn2.norm0)
-        #print ux
-        return tl.Vector(ux,uy,uz)
+        # Katz
+        A=self.p1
+        B=self.p2
+        r0 = tl.Vector(B.x-A.x,B.y-A.y,B.z-A.z)
+        r1 = tl.Vector(x-A.x,y-A.y,z-A.z)
+        r2 = tl.Vector(x-B.x,y-B.y,z-B.z)
+        pv = tl.cross(r1,r2,norm=False)
+        ps1 = tl.dot(r0,r1)
+        ps2 = tl.dot(r0,r2)
+
+        normVP2 = pv.norm0**2.
+        eps=1.e-9 
+        if (r1.norm0<eps or r2.norm0<eps or normVP2<eps):
+            K=0.
+        else:
+            K = (self.gamma/(4.*np.pi*normVP2))*((ps1/r1.norm0)-(ps2/r2.norm0))
+        return tl.Vector(K*pv.x,K*pv.y,K*pv.z)
 
 
 class dipolePanel:
@@ -139,19 +146,23 @@ class dipolePanel:
         l0 = lineVortex(self.p0,self.p1,1.)
         l1 = lineVortex(self.p1,self.p2,1.)
         l2 = lineVortex(self.p2,self.p3,1.)
-        l3 = lineVortex(self.p3,self.p1,1.)
+        l3 = lineVortex(self.p3,self.p0,1.)
         p = other.cg
-        return tl.dot(l0.getVelocity(p.x,p.y,p.z),other.n)
+        vel = l0.getVelocity(p.x,p.y,p.z)+\
+                l1.getVelocity(p.x,p.y,p.z)+\
+                l2.getVelocity(p.x,p.y,p.z)+\
+                l3.getVelocity(p.x,p.y,p.z)
+        return tl.dot(vel,other.n)
     def getVelocity(self,x,y,z):
         l0 = lineVortex(self.p0,self.p1,self.intensity)
         l1 = lineVortex(self.p1,self.p2,self.intensity)
         l2 = lineVortex(self.p2,self.p3,self.intensity)
-        l3 = lineVortex(self.p3,self.p1,self.intensity)
+        l3 = lineVortex(self.p3,self.p0,self.intensity)
         ux = l0.getVelocity(x,y,z)[0]+l1.getVelocity(x,y,z)[0]+l2.getVelocity(x,y,z)[0]+l3.getVelocity(x,y,z)[0]
         uy = l0.getVelocity(x,y,z)[1]+l1.getVelocity(x,y,z)[1]+l2.getVelocity(x,y,z)[1]+l3.getVelocity(x,y,z)[1]
         uz = l0.getVelocity(x,y,z)[2]+l1.getVelocity(x,y,z)[2]+l2.getVelocity(x,y,z)[2]+l3.getVelocity(x,y,z)[2]
         #print x
-        return [ux,uy,uz]
+        return tl.Vector(ux,uy,uz)
 
 class Surface:
     def __init__(self,tab,sf):   # sf is a bigQuad
