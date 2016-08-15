@@ -9,6 +9,7 @@ import time
 import sys
 import vlm0 as vlm
 import asciiArt
+import dynamics as dyn
 
 name='sail'
 
@@ -30,16 +31,18 @@ D<---------C
            
 """
 
-A=tl.Point(-1.,2.,0.3)
-B=tl.Point(1.,2.,-0.9)
-C=tl.Point(1.,-2.,-0.6)
-D=tl.Point(-1.,-2.,0.9)
+A=tl.Point(-0.25,2.,0.15)
+B=tl.Point(0.3,2.,-0.45)
+C=tl.Point(0.5,-2.,-0.3)
+D=tl.Point(-1.,-2.,0.35)
 fs=vlm.freeStream(1.,0.,0.)
 
 q0=tl.bigQuad(A,B,C,D)
 q0.subQuad(Nu,Nv)
 q0.facetize()
 
+
+mat=dyn.materialPoint(0.,0.,0.,1.)
 
 #A=vlm.fluidPoint(-42.,-50.,-100.)
 #B=vlm.fluidPoint(42.,50.,100.)

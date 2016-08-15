@@ -10,7 +10,7 @@ import math
 
 
 
-class Point:
+class Point(object):
     def __init__(self,x=0.,y=0.,z=0.):
         self.x=x
         self.y=y
@@ -24,6 +24,15 @@ class Point:
         self.x=x
         self.y=y
         self.z=z
+    def __getitem__(self,i):
+        if i == 0:return self.x
+        if i == 1:return self.y
+        if i == 2:return self.z
+    def __setitem__(self,i,x):
+        if i == 0 : self.x = x
+        if i == 1 : self.y = x
+        if i == 2 : self.z = x
+
     def ran(self):
         self.x=random()
         sleep(0.1)
