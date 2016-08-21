@@ -75,6 +75,10 @@ class Vector:
         if i == 2:return self.z
     def __add__(self,other):
         return Vector(self.x+other.x,self.y+other.y,self.z+other.z)
+    def __mul__(self,alpha):
+        return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
+    def __rmul__(self,alpha):
+        return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
     def fromPoints(self,A,B):
         self.x=B.x-A.x
         self.y=B.y-A.y
