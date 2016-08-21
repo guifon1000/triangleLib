@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from random import random
+from random import random,randint
 from time import sleep
 import math
 
@@ -15,10 +15,14 @@ class Point(object):
         self.x=x
         self.y=y
         self.z=z
-        self.index=-1
+        self.index=None
+    def setIndex(self,i):
+        self.index = i
     def __str__(self):
         string=''
-        string += str((self.x,self.y,self.z))
+
+        if self.index == None : string += str((self.x,self.y,self.z))
+        else : string += 'P#'+str(self.index)+str((self.x,self.y,self.z))
         return string
     def setPos(self,x,y,z):
         self.x=x
@@ -417,15 +421,42 @@ if __name__=='__main__':
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     
+    N = 8
+    index=-1
+    points = []
+    for i in range(N):
+        index+=1
+        p = Point(random(),random(),random())
+        p.setIndex(index)
+        points.append(p)
+    links = []
+    for il in range(len(points)):
+        i=randint(0,N-1)
+        j=i
+        while j==i:j=randint(0,N-1)
+        #print 'link # '+str(i)+' : '+str(points[i])+' <--> '+str(points[j])
+        links.append([i,j])
+    print links
+    print '----------------------------'
+    adjacencyMatrix = np.zeros((N,N))
+    for l in links:
+        adjacencyMatrix[l[0],l[1]]+=1
+        adjacencyMatrix[l[1],l[0]]+=1
+    print adjacencyMatrix-np.transpose(adjacencyMatrix)
+    print '---------------------------'
 
 
 
-    t=Triangle()
-    t.p1.ran()
-    t.p2.ran()
-    t.p3.ran()
-    vor=t.circumCenter()
-    ax.scatter(vor.x,vor.y,vor.z)
+    for p in points:
+        ax.scatter(p.x,p.y,p.z)
+        ax.text(p.x,p.y,1.1*p.z,p.index)
+    for l in links:
+        A = points[l[0]]
+        B = points[l[1]]
+        xx = [A.x , B.x]
+        yy = [A.y , B.y]
+        zz = [A.z , B.z]
+        ax.plot(xx,yy,zz)
     ax.axis('equal')
     plt.show()
     

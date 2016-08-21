@@ -7,7 +7,7 @@ import numpy as np
 
 
 class materialPoint(tl.Point):
-    def __init__(self,x,y,z,m,dof):
+    def __init__(self,x,y,z,m,dof='0'):
         super(materialPoint,self).__init__(x,y,z)
         self.mass = m
         self.dof = dof
@@ -29,3 +29,7 @@ if __name__ == '__main__':
     matK=np.eye(3)
     print s.k*matK
     print 'ok'
+
+
+    # creation of a set of Points
+
