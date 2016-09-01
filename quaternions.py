@@ -60,12 +60,26 @@ class Quaternion:
         mat[2,0]=2.*x*z-2.*y*w
         mat[2,1]=2.*y*z+2.*x*w
         mat[2,2]=1.-2*x**2.-2.*y**2.
-        print mat
+        return mat
+
+
+def matrix2quaternion(m):
+    diag=np.diag(m)
+    np.append(diag,1.)
+    tr= np.trace(m)+1.
+    if tr>0.:
+        s=0.5/np.sqrt(tr)
+        x=m[2,1]-m[1,2]*s
+        y=m[0,2]-m[2,0]*s
+        z=m[1,0]-m[0,1]*s
+        w=0.25/s
+        return Quaternion(np.complex(w,x),np.complex(y,z))
+         
 
 if __name__=='__main__':
-    a=np.complex(0.5,-0.5)
-    b=np.complex(0.5,-0.5)
+    a=np.complex(0.5,0.5)
+    b=np.complex(0.5,0.5)
     q=Quaternion(a,b)
     print q
-    q.quaternion2matrix()
-
+    m=q.quaternion2matrix()
+    print matrix2quaternion(m) 
