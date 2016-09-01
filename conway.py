@@ -17,9 +17,12 @@ from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty
 from functools import partial
 from kivy.config import Config
+#from kivy.base import EventLoop
+#EventLoop.ensure_window()
+import time
 Config.set('graphics', 'width', '900')
 Config.set('graphics', 'height', '900')
-N= 120
+N= 130
 Nc = 2
 
 
@@ -32,10 +35,10 @@ class World(GridLayout):
         self.cells=[Cell()]*rows*cols
  
     def update(self,*largs):
+        start=time.time()
         for c in self.cells:
-            c.countAlive(self.cells)
+            c.countAlive(self.cells,mode='num')
             c.nextState=0
-            #if c.state==1:c.aliveNeig+=1
             if c.aliveNeig==3:
                 c.nextState=1
             elif c.aliveNeig==2:
@@ -47,25 +50,24 @@ class World(GridLayout):
             c.setAlive()
             c.canvas.clear()
             with c.canvas:
-                  
                 if c.state==1:
-                    self.c0=1
-                    self.c1=1
-                    self.c2=1
+                    c0=1
+                    c1=1
+                    c2=1
                 else:
-                    self.c0=0
-                    self.c1=0
-                    self.c2=0
-                Color(self.c0,self.c1,self.c2)
+                    c0=0
+                    c1=0
+                    c2=0
+                Color(c0,c1,c2)
                 Rectangle(pos=c.center, size=(50, 50))
-            #print c.color
-     
+        stop =time.time()
+        print '----------------------------------'
+        print stop-start
+        print '----------------------------------'
 
 class ConwayApp(App):
     def build(self):
         cellZone = World(N,N)
-        cellZone.size=[100,100]
-        #cellZone.pos=[1,1]
         index=-1
         for i in range(cellZone.rows):
             for j in range(cellZone.cols):
@@ -79,9 +81,9 @@ class ConwayApp(App):
                 cellZone.cells[index]=cell
         cellZone.update()
         for c in cellZone.cells:
-            c.countAlive(cellZone.cells)
+            c.countAlive(cellZone.cells,mode='name')
 
-        dt=0.1
+        dt=0.01
         Clock.schedule_interval(cellZone.update,dt)
         return cellZone
 
@@ -89,11 +91,7 @@ class ConwayApp(App):
 
 
 class Cell(Widget):
-    c0 = NumericProperty()
-    c1 = NumericProperty()
-    c2 = NumericProperty()
     def __init__(self,i=0,j=0):
-        self.color=1.0,1.0,1.0
         self.irow=i
         self.icol=j
         self.state=0   
@@ -108,59 +106,66 @@ class Cell(Widget):
         self.iSouthWest='*'
         self.index=-1
         self.aliveNeig=0
+        self.neig=[-1]*8
         self.color = Color(rand(), 1, 1)
         super(Cell, self).__init__()
     
     def neighbours(self):
         if self.irow-1 >= 0 :
             self.iNorth = self.index-N
+            self.neig[0]= self.index-N
         else :
             self.iNorth = '*'
         if self.irow+1 <= N-1 :
             self.iSouth = self.index+N
+            self.neig[4] = self.index+N
         else:
             self.iSouth = '*'
         if self.icol-1 >= 0 :
             self.iWest =self.index-1
+            self.neig[6] =self.index-1
         else :
             self.iWest='*'
         if self.icol+1 <= N-1 :
             self.iEast = self.index+1
+            self.neig[2] = self.index+1
         else:
             self.iEast='*'
         if self.irow-1 >= 0 and self.icol+1 <= N-1:
             self.iNorthEast=self.index-N+1
+            self.neig[1]=self.index-N+1
         else:
             self.iNorthEast='*' 
         if self.irow-1 >= 0 and self.icol-1 >= 0 :
             self.iNorthWest=self.index-N-1
+            self.neig[7]=self.index-N-1
         else:
             self.iNorthWest='*'
         if self.irow+1 <= N-1 and self.icol+1 <= N-1:
             self.iSouthEast=self.index+N+1
+            self.neig[3]=self.index+N+1
         else:
             self.iSouthEast='*'
         if self.irow+1 <= N-1 and self.icol-1 >= 0:
             self.iSouthWest=self.index+N-1
+            self.neig[5]=self.index+N-1
         else:
             self.iSouthWest='*'
 
-    def countAlive(self,tab):
+    def countAlive(self,tab,mode='name'):
         self.aliveNeig=0
-        neig = [self.iNorth,self.iSouth,self.iWest,self.iEast,\
+        if mode =='name':
+            neig = [self.iNorth,self.iSouth,self.iWest,self.iEast,\
                 self.iNorthEast,self.iNorthWest,self.iSouthEast,self.iSouthWest]
-        for n in neig:
-            if n!='*' and tab[n].state==1:
-                self.aliveNeig+=1
-        
-        
-    def __str__(self):
-        s = str(self.iNorthWest)+' '+str(self.iNorth)+' '+str(self.iNorthEast)+'\n'
-        s+= str(self.iWest)+' '+str(self.index)+' '+str(self.iEast)+'\n'
-        s+= str(self.iSouthWest)+' '+str(self.iSouth)+' '+str(self.iSouthEast)
-        return s
+            for n in neig:
+                if n!='*' and tab[n].state==1:
+                    self.aliveNeig+=1
+        elif mode=='num':
+            for i in self.neig:
+                if i!=-1 and tab[i].state==1:
+                    self.aliveNeig+=1
 
-        
+            
     def setAlive(self):
         self.state=0
         if self.nextState==1:
