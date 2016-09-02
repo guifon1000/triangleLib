@@ -66,6 +66,7 @@ class Quaternion:
 def matrix2quaternion(m):
     diag=np.diag(m)
     np.append(diag,1.)
+    
     tr= np.trace(m)+1.
     if tr>0.:
         s=0.5/np.sqrt(tr)
@@ -82,4 +83,4 @@ if __name__=='__main__':
     q=Quaternion(a,b)
     print q
     m=q.quaternion2matrix()
-    print matrix2quaternion(m) 
+    print matrix2quaternion(m).quaternion2matrix()
