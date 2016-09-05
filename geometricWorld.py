@@ -14,7 +14,7 @@ import dynamics as dyn
 name='sail'
 
 Nu=5
-Nv=5
+Nv=4    #--> direction X
 
 
 asciiArt.openFile('minusEtCortex2')
@@ -188,7 +188,7 @@ normal=tl.Vector(0.,-1.,0.)
 f=1.
 
 
-mesh = vlm.Mesh(50,50,50,5.,5.,5.)
+mesh = vlm.Mesh(50,30,20,5.,3.,2.)
 mesh.compute(elem)
 
 mesh.writeVTK()

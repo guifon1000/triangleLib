@@ -146,6 +146,8 @@ class lineVortex:
         return tl.Vector(K*pv.x,K*pv.y,K*pv.z)
 
 
+
+
 class dipolePanel:
     def __init__(self,p0,p1,p2,p3):
         self.p0 = p0
@@ -178,6 +180,15 @@ class dipolePanel:
         uy = l0.getVelocity(x,y,z)[1]+l1.getVelocity(x,y,z)[1]+l2.getVelocity(x,y,z)[1]+l3.getVelocity(x,y,z)[1]
         uz = l0.getVelocity(x,y,z)[2]+l1.getVelocity(x,y,z)[2]+l2.getVelocity(x,y,z)[2]+l3.getVelocity(x,y,z)[2]
         return tl.Vector(ux,uy,uz)
+
+class horseShoeVortex:
+    def __init__(self,p0,p1):
+        self.p0=p0
+        self.p1=p1
+
+
+
+
 
 class Surface:
     def __init__(self,tab,sf):   # sf is a bigQuad

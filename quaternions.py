@@ -1,5 +1,6 @@
 from math import hypot
 import numpy as np
+#import sympy
 
 class Quaternion:
     def __init__(self,a,b):
