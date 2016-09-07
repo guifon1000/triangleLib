@@ -85,15 +85,17 @@ mat=dyn.materialPoint(0.,0.,0.,1.)
 #plt.colorbar()
 #plt.show()
 
+testMSH = tl.quadsPanel('testGMSH')
+print testMSH.faces
 
+print '((((((((((((((((((((((((((((((((((((((((('
 
 
 tab=[]
 rht=[]
-for q in q0.quads:
+for q in testMSH.quads:
     tab.append(vlm.dipolePanel(q.p0,q.p1,q.p2,q.p3))
-
-sfce=vlm.Surface(tab,q0)
+sfce=vlm.Surface(tab,testMSH)
 sfce.dipoleMatrix(sfce.tab)
 
 plt.clf()
@@ -113,7 +115,7 @@ print ''
 
 elem=[]
 mu = np.dot(np.linalg.inv(sfce.M),rht)
-
+mu=[1. for r in rht]
 sfce.addCellData(rht,'rht')
 sfce.addCellData(mu,'mu')
 sfce.writeVTK('mumu')
@@ -147,7 +149,6 @@ l1=vlm.lineVortex(C,D,1.)
 
 #elem.append(l0)
 #elem.append(l1)
-
 
 
 

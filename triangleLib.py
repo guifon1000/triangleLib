@@ -4,18 +4,18 @@ from mpl_toolkits.mplot3d import Axes3D
 from random import random,randint
 from time import sleep
 import math
-
+import pyGmsh as msh
 
 
 
 
 
 class Point(object):
-    def __init__(self,x=0.,y=0.,z=0.):
+    def __init__(self,x=0.,y=0.,z=0.,index=None):
         self.x=x
         self.y=y
         self.z=z
-        self.index=None
+        self.index=index
     def setIndex(self,i):
         self.index = i
     def __str__(self):
@@ -166,6 +166,35 @@ class Panel:
           
 
 
+class quadsPanel:
+    def __init__(self,name):
+        points,faces=msh.read4CornersSurfMSH(name+'.msh')
+        self.pts = points
+        self.quads = faces
+        Nu=-1
+        Nv=-1
+        f = open(name+'.geo','r').readlines()
+        for l in f :
+            if l.startswith('N1='):Nu=int(l.replace('N1=','').replace(';',''))
+            if l.startswith('N2='):Nu=int(l.replace('N2=','').replace(';',''))
+        self.Nu = Nu
+        self.Nv = Nv
+        self.X = np.array([p.x for p in self.pts])
+        self.Y = np.array([p.y for p in self.pts])
+        self.Z = np.array([p.z for p in self.pts])
+        faces = [] 
+        for pan in self.quads:
+            t1=[msh.returnIndex(self.pts,pan.p0.index),\
+                    msh.returnIndex(self.pts,pan.p1.index),\
+                    msh.returnIndex(self.pts,pan.p2.index)]
+
+            t2=[msh.returnIndex(self.pts,pan.p0.index),\
+                    msh.returnIndex(self.pts,pan.p2.index),\
+                    msh.returnIndex(self.pts,pan.p3.index)]
+            faces.append(t1)
+            faces.append(t2)
+
+        self.faces=faces
 
 class bigQuad:
     def __init__(self,p0,p1,p2,p3):
