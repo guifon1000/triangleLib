@@ -87,6 +87,34 @@ mat=dyn.materialPoint(0.,0.,0.,1.)
 
 testMSH = tl.quadsPanel('testGMSH')
 print testMSH.faces
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+for f in testMSH.pts:
+    ax.scatter(f.x, f.y, f.z,marker='s')
+
+for f in testMSH.quads:
+    s0 = [f.p0.x,f.p1.x,f.p2.x,f.p3.x,f.p0.x]
+    s1 = [f.p0.y,f.p1.y,f.p2.y,f.p3.y,f.p0.y]
+    s2 = [f.p0.z,f.p1.z,f.p2.z,f.p3.z,f.p0.z]
+    ax.plot(s0,s1,s2,'k')
+
+
+for f in testMSH.faces:
+    p0=f.pts[0]
+    p1=f.pts[1]
+    p2=f.pts[2]
+    p3=f.pts[3]
+
+    s0 = [f.p0.x,f.p1.x,f.p2.x]
+    s1 = [f.p2.y,f.p1.y,f.p2.y]
+    s2 = [f.p0.z,f.p1.z,f.p2.z,f.p3.z,f.p0.z]
+    ax.plot(s0,s1,s2,'k')
+
+
+
+
+plt.show()
 
 print '((((((((((((((((((((((((((((((((((((((((('
 

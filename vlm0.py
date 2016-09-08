@@ -4,6 +4,7 @@ import triangles_to_VTK as tv
 import matplotlib.pyplot as plt
 import pyevtk.hl as vhl
 
+
 class fluidPoint(tl.Point):
     def __init__(self,x,y,z):
         super(fluidPoint, self).__init__(x,y,z)
@@ -212,5 +213,5 @@ class Surface:
         self.cell_data[name]=np.array(tmp)
     def writeVTK(self,name):
         tv.triangle_faces_to_VTK(name,self.bigquad.X,self.bigquad.Y,self.bigquad.Z,np.array(self.bigquad.faces),None,self.cell_data)
-        
-    
+    def plot(self):
+        print ''
