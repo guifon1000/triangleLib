@@ -173,10 +173,11 @@ class quadsPanel:
         self.quads = faces
         Nu=-1
         Nv=-1
+        faces=[]
         f = open(name+'.geo','r').readlines()
         for l in f :
             if l.startswith('N1='):Nu=int(l.replace('N1=','').replace(';',''))
-            if l.startswith('N2='):Nu=int(l.replace('N2=','').replace(';',''))
+            if l.startswith('N2='):Nv=int(l.replace('N2=','').replace(';',''))
         self.Nu = Nu
         self.Nv = Nv
         self.X = np.array([p.x for p in self.pts])
@@ -194,7 +195,7 @@ class quadsPanel:
             faces.append(t1)
             faces.append(t2)
 
-        self.faces=faces
+        self.faces=np.array(faces)
 
 class bigQuad:
     def __init__(self,p0,p1,p2,p3):

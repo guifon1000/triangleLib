@@ -1,8 +1,8 @@
 // Inputs
 squareSide = 200; //m
 meshThickness = squareSide / 10; 
-N1=27;
-N2=11;
+N1=5;
+N2=4;
 
 // Geometry
 Point(1) = {-0.25,2.,0.15};
