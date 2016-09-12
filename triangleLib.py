@@ -164,11 +164,39 @@ class Panel:
                     0.25*(n0.z+n1.z+n2.z+n3.z))
         self.ng.normalize()
           
-
-
 class quadsPanel:
-    def __init__(self,name):
-        points,faces=msh.read4CornersSurfMSH(name+'.msh')
+    def __init__(self, points,faces):
+        self.pts = points
+        self.quads = faces
+        Nu=-1
+        Nv=-1
+        faces=[]
+        f = open(name+'.geo','r').readlines()
+        for l in f :
+            if l.startswith('N1='):Nu=int(l.replace('N1=','').replace(';',''))
+            if l.startswith('N2='):Nv=int(l.replace('N2=','').replace(';',''))
+        self.Nu = Nu
+        self.Nv = Nv
+        self.X = np.array([p.x for p in self.pts])
+        self.Y = np.array([p.y for p in self.pts])
+        self.Z = np.array([p.z for p in self.pts])
+        faces = []
+        for pan in self.quads:
+            t1=[msh.returnIndex(self.pts,pan.p0.index),\
+                    msh.returnIndex(self.pts,pan.p1.index),\
+                    msh.returnIndex(self.pts,pan.p2.index)]
+
+            t2=[msh.returnIndex(self.pts,pan.p0.index),\
+                    msh.returnIndex(self.pts,pan.p2.index),\
+                    msh.returnIndex(self.pts,pan.p3.index)]
+            faces.append(t1)
+            faces.append(t2)
+
+        self.faces=np.array(faces)
+
+
+class quadsPaneli0:
+    def __init__(self, points,faces):
         self.pts = points
         self.quads = faces
         Nu=-1
