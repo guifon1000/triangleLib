@@ -4,24 +4,25 @@ from mpl_toolkits.mplot3d import Axes3D
 from random import random,randint
 from time import sleep
 import math
-import pyGmsh as msh
 
 
 
 
 
-class Point(object):
+class Point(list):
     def __init__(self,x=0.,y=0.,z=0.,index=None):
+        super(Point,self).__init__([x,y,z])
+        #self.append([float(x),float(y),float(z)])
         self.x=x
         self.y=y
         self.z=z
         self.index=index
     def setIndex(self,i):
         self.index = i
-    def __str__(self):
+    def str00__(self):
         string=''
 
-        if self.index == None : string += str((self.x,self.y,self.z))
+        if self.index == None : string += str(self)
         else : string += 'P#'+str(self.index)+str((self.x,self.y,self.z))
         return string
     def setPos(self,x,y,z):
@@ -84,9 +85,9 @@ class Vector:
     def __rmul__(self,alpha):
         return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
     def fromPoints(self,A,B):
-        self.x=B.x-A.x
-        self.y=B.y-A.y
-        self.z=B.z-A.z
+        self.x=B[0]-A[0]
+        self.y=B[1]-A[1]
+        self.z=B[2]-A[2]
         self.calcNorm0()
     def calcNorm0(self):
         self.norm0=math.sqrt(self.x**2+self.y**2+self.z**2)
@@ -117,7 +118,7 @@ class Vector:
 
 
 
-class Panel:
+class Panel(object):
     """
     
     p0 ----> p1                  p0 <------ p1                  p1                                                                                                     
@@ -137,9 +138,9 @@ class Panel:
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
-        x0=0.25*(p0.x+p1.x+p2.x+p3.x) 
-        y0=0.25*(p0.y+p1.y+p2.y+p3.y) 
-        z0=0.25*(p0.z+p1.z+p2.z+p3.z) 
+        x0=0.25*(p0[0]+p1[0]+p2[0]+p3[0]) 
+        y0=0.25*(p0[1]+p1[1]+p2[1]+p3[1]) 
+        z0=0.25*(p0[2]+p1[2]+p2[2]+p3[2]) 
         cent0=Point(x0,y0,z0)
         self.cg = cent0
         
@@ -163,125 +164,6 @@ class Panel:
                     0.25*(n0.y+n1.y+n2.y+n3.y),\
                     0.25*(n0.z+n1.z+n2.z+n3.z))
         self.ng.normalize()
-          
-class quadsPanel:
-    def __init__(self, points,faces):
-        self.pts = points
-        self.quads = faces
-        Nu=-1
-        Nv=-1
-        faces=[]
-        f = open(name+'.geo','r').readlines()
-        for l in f :
-            if l.startswith('N1='):Nu=int(l.replace('N1=','').replace(';',''))
-            if l.startswith('N2='):Nv=int(l.replace('N2=','').replace(';',''))
-        self.Nu = Nu
-        self.Nv = Nv
-        self.X = np.array([p.x for p in self.pts])
-        self.Y = np.array([p.y for p in self.pts])
-        self.Z = np.array([p.z for p in self.pts])
-        faces = []
-        for pan in self.quads:
-            t1=[msh.returnIndex(self.pts,pan.p0.index),\
-                    msh.returnIndex(self.pts,pan.p1.index),\
-                    msh.returnIndex(self.pts,pan.p2.index)]
-
-            t2=[msh.returnIndex(self.pts,pan.p0.index),\
-                    msh.returnIndex(self.pts,pan.p2.index),\
-                    msh.returnIndex(self.pts,pan.p3.index)]
-            faces.append(t1)
-            faces.append(t2)
-
-        self.faces=np.array(faces)
-
-
-class quadsPaneli0:
-    def __init__(self, points,faces):
-        self.pts = points
-        self.quads = faces
-        Nu=-1
-        Nv=-1
-        faces=[]
-        f = open(name+'.geo','r').readlines()
-        for l in f :
-            if l.startswith('N1='):Nu=int(l.replace('N1=','').replace(';',''))
-            if l.startswith('N2='):Nv=int(l.replace('N2=','').replace(';',''))
-        self.Nu = Nu
-        self.Nv = Nv
-        self.X = np.array([p.x for p in self.pts])
-        self.Y = np.array([p.y for p in self.pts])
-        self.Z = np.array([p.z for p in self.pts])
-        faces = [] 
-        for pan in self.quads:
-            t1=[msh.returnIndex(self.pts,pan.p0.index),\
-                    msh.returnIndex(self.pts,pan.p1.index),\
-                    msh.returnIndex(self.pts,pan.p2.index)]
-
-            t2=[msh.returnIndex(self.pts,pan.p0.index),\
-                    msh.returnIndex(self.pts,pan.p2.index),\
-                    msh.returnIndex(self.pts,pan.p3.index)]
-            faces.append(t1)
-            faces.append(t2)
-
-        self.faces=np.array(faces)
-
-class bigQuad:
-    def __init__(self,p0,p1,p2,p3):
-        self.p0=p0
-        self.p1=p1
-        self.p2=p2
-        self.p3=p3
-        self.pts=[p0,p1,p2,p3]
-        self.faces=[[2,3,0],[2,0,1]]
-        self.Nu=2
-        self.Nv=2
-    def subQuad(self,Nu,Nv):
-        A=self.p0
-        B=self.p1
-        C=self.p2
-        D=self.p3
-        pts=[]
-        x = []
-        y = []
-        z = []
-        for i in range(Nu):
-            realI=float(i)/float(Nu-1)
-            cprime = Point(C.x+realI*(B.x-C.x),C.y+realI*(B.y-C.y),C.z+realI*(B.z-C.z))
-            dprime = Point(D.x+realI*(A.x-D.x),D.y+realI*(A.y-D.y),D.z+realI*(A.z-D.z))
-            for j in range(Nv):
-                realJ=float(j)/float(Nv-1)
-                pij = Point(cprime.x+realJ*(dprime.x-cprime.x),cprime.y+realJ*(dprime.y-cprime.y),cprime.z+realJ*(dprime.z-cprime.z))  
-                pts.append(pij)
-                x.append(pij.x)
-                y.append(pij.y)
-                z.append(pij.z)
-        self.Nu=Nu
-        self.Nv=Nv
-        self.pts=pts
-        self.X=np.array(x)
-        self.Y=np.array(y)
-        self.Z=np.array(z)
-    def facetize(self):
-        ip=0
-        faces=[]
-        quads=[]
-        
-        for i in range(self.Nu-1):
-            for j in range(self.Nv-1):
-                if np.mod(ip,self.Nv)==0 : ip+=1
-                faces.append([ip-1,ip,ip+self.Nv])
-                faces.append([ip-1,ip+self.Nv,ip+self.Nv-1])
-                f0=[ip-1,ip,ip+self.Nv]
-                f1=[ip-1,ip+self.Nv,ip+self.Nv-1]
-                print 'panel # '+str(ip)+' : '+str([ip-1,ip,ip+self.Nv,ip+self.Nv-1])
-                p0=self.pts[ip-1]
-                p1=self.pts[ip]
-                p2=self.pts[ip+self.Nv]
-                p3=self.pts[ip+self.Nv-1]
-                quads.append(Panel(p0,p1,p2,p3))
-                ip+=1
-        self.faces=faces 
-        self.quads = quads
 
 def cross(u,v, norm=True):
     pv=[]
