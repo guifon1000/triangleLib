@@ -19,10 +19,10 @@ class Point(list):
         self.index=index
     def setIndex(self,i):
         self.index = i
-    def str00__(self):
+    def __str__(self):
         string=''
 
-        if self.index == None : string += str(self)
+        if self.index == None : string += '['+str(self[0])+','+str(self[1])+','+str(self[2])+']'
         else : string += 'P#'+str(self.index)+str((self.x,self.y,self.z))
         return string
     def setPos(self,x,y,z):
@@ -54,13 +54,9 @@ def distance(p1,p2):
     return math.sqrt((p2.x-p1.x)**2+(p2.y-p1.y)**2+(p2.z-p1.z)**2)
 
 
-class Segment:
-    def __init__(self):
-        self.p1=Point()
-        self.p2=Point()
-    def setPoints(self,p1,p2):
-        self.p1=p1
-        self.p2=p2
+class Segment(list):
+    def __init__(self,p1,p2):
+        super(Segment,self).__init__([p1,p2])
     def middle(self):
         self.mid=Point()
         self.mid.x=0.5*(self.p1.x+self.p2.x)

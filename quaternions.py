@@ -3,26 +3,28 @@ import numpy as np
 #import sympy
 
 class Quaternion:
-    def __init__(self,a,b):
+    def __init__(self,a,b,c,d):
         self.a=a
         self.b=b
+        self.c=c
+        self.d=d
 
     def __str__(self):
         aff='('
-        aff+=str(self.a.real)+')+('
-        aff+=str(self.a.imag)+')i+('
-        aff+=str(self.b.real)+')j+('
-        aff+=str(self.b.imag)+')k'
+        aff+=str(self.a)+')+('
+        aff+=str(self.b)+')i+('
+        aff+=str(self.c)+')j+('
+        aff+=str(self.d)+')k'
         return aff
 
     def __neg__(self):
-        return Quaternion(-self.a,-self.b)
+        return Quaternion(-self.a,-self.b,-self.c,-self.d)
 
     def __add__(self,other):
-        return Quaternion(self.a+other.a,self.b+other.b)
+        return Quaternion(self.a+other.a,self.b+other.b,self.c+other.c,self.d+other.d)
 
     def __sub__(self,other):
-        return Quaternion(self.a-other.a,self.b-other.b)
+        return Quaternion(self.a-other.a,self.b-other.b,self.c-other.c,self.d-other.d)
 
     def __mul__(self,other):
         c=self.a*other.a-self.b*other.b.conjugate()
@@ -48,10 +50,10 @@ class Quaternion:
         return r
     def quaternion2matrix(self):
         mat=np.zeros((3,3),dtype=np.float)
-        x=self.a.real
-        y=self.a.imag
-        z=self.b.real
-        w=self.b.imag
+        x=self.a
+        y=self.b
+        z=self.c
+        w=self.d
         mat[0,0]=1.-2*y**2.-2.*z**2. 
         mat[0,1]=2.*x*y-2.*z*w
         mat[0,2]=2.*x*z+2.*y*w
