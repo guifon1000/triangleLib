@@ -8,6 +8,25 @@ sys.path.append('./VortexLatticeMethod/')
 import vlm as vlm
 
 
+class Triangulation(list):
+    def __init__(self,stl = None):
+        print "triangulation creation"
+        if stl is not None : 
+            geom = pg.Geometry()
+            geom._GMSH_CODE.append('Merge \''+stl+'\';\n')
+            self.points, self.cells = pg.generate_mesh(geom)
+
+
+        fg = open('test0.geo','w')
+        for l in geom.get_code():
+            fg.write(l)
+        self.points, self.cells = pg.generate_mesh(geom)
+
+        self.X = np.array([p[0] for p in self.points])
+        self.Y = np.array([p[1] for p in self.points])
+        self.Z = np.array([p[2] for p in self.points])
+        self.tris = self.cells['triangle']
+
 class surfaceMesh(object):
     def __init__(self,points,Nu,Nv):
         self.Nu = Nu

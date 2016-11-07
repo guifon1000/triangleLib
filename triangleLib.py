@@ -4,9 +4,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from random import random,randint
 from time import sleep
 import math
-
-
-
+import mesh
+import os
+import meshio
 
 
 class Point(list):
@@ -247,24 +247,29 @@ class Triangle:
           s1
 
     """
-    def __init__(self):
-        self.p1=Point()
-        self.p2=Point()
-        self.p3=Point()
-        self.s1=Segment()
-        self.s2=Segment()
-        self.s3=Segment()
-        self.u=Vector()
-        self.v=Vector()
-        self.w=Vector()
-        self.s1.setPoints(self.p1,self.p2)
-        self.s2.setPoints(self.p2,self.p3)
-        self.s3.setPoints(self.p3,self.p1)
+    def __init__(self,p1,p2,p3):
+        self.p1 = p1
+        self.p2 = p2
+        self.p3 = p3
+        self.s1=Segment(p1,p2)
+        self.s2=Segment(p2,p3)
+        self.s3=Segment(p3,p1)
+        self.u=Vector(p2[0]-p1[0],p2[1]-p1[1],p2[2]-p1[2])
+        self.v=Vector(p3[0]-p2[0],p3[1]-p2[1],p3[2]-p2[2])
+        self.w=Vector(p1[0]-p3[0],p1[1]-p3[1],p1[2]-p3[2])
+        
+        #self.s1.setPoints(self.p1,self.p2)
+        #self.s2.setPoints(self.p2,self.p3)
+        #self.s3.setPoints(self.p3,self.p1)
 
     def setPoints(self,p1,p2,p3):
         self.p1=p1
         self.p2=p2
         self.p3=p3
+    
+
+    def computeNormal(self):    # wrong
+        return cross(self.u,self.v,norm = False) 
     def createSys(self):
         """
         creates a coordinate system (u,v,w) for which u is aligned with the first
@@ -322,7 +327,7 @@ class Triangle:
         A2.setMediator(self.p2,self.p3)
         A3.set3Points(self.p1,self.p2,self.p3)
         vor=intersect3Planes(A1,A2,A3)
-        self.circumcenter=vor
+        self.circumcenter=vor   # vor ? really ?
         return vor
     
     def gravityCenter(self):
@@ -338,17 +343,17 @@ class Triangle:
     
 
 
-    def draw(t,ax):
-        x=[t.p1.x,t.p2.x,t.p3.x]
-        y=[t.p1.y,t.p2.y,t.p3.y]
-        z=[t.p1.z,t.p2.z,t.p3.z]
-        x.append(t.p1.x)
-        y.append(t.p1.y)
-        z.append(t.p1.z)
-        t.middleIze()
-        ax.scatter(t.s1.mid.x,t.s1.mid.y,t.s1.mid.z)
-        ax.scatter(t.s2.mid.x,t.s2.mid.y,t.s2.mid.z)
-        ax.scatter(t.s3.mid.x,t.s3.mid.y,t.s3.mid.z)
+    def draw(self,ax):
+        x=[self.p1.x,self.p2.x,self.p3.x]
+        y=[self.p1.y,self.p2.y,self.p3.y]
+        z=[self.p1.z,self.p2.z,self.p3.z]
+        x.append(self.p1.x)
+        y.append(self.p1.y)
+        z.append(self.p1.z)
+        #self.middleIze()
+        #ax.scatter(self.s1.mid.x,self.s1.mid.y,self.s1.mid.z)
+        #ax.scatter(self.s2.mid.x,self.s2.mid.y,self.s2.mid.z)
+        #ax.scatter(self.s3.mid.x,self.s3.mid.y,self.s3.mid.z)
         ax.plot(x,y,z)
         
 
@@ -356,43 +361,34 @@ class Triangle:
 if __name__=='__main__':
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    
-    N = 8
+    # 2D polygone  
+    N = 4
     index=-1
     points = []
-    for i in range(N):
-        index+=1
-        p = Point(random(),random(),random())
-        p.setIndex(index)
-        points.append(p)
+    points.append(Point(-1.,1.,0.))
+    points.append(Point(1.,1.,0.))
+    points.append(Point(1.,-1.,0.))
+    points.append(Point(-1.,-1.,0.))
     links = []
-    for il in range(len(points)):
-        i=randint(0,N-1)
-        j=i
-        while j==i:j=randint(0,N-1)
-        #print 'link # '+str(i)+' : '+str(points[i])+' <--> '+str(points[j])
-        links.append([i,j])
-    print links
-    print '----------------------------'
-    adjacencyMatrix = np.zeros((N,N))
-    for l in links:
-        adjacencyMatrix[l[0],l[1]]+=1
-        adjacencyMatrix[l[1],l[0]]+=1
-    print adjacencyMatrix-np.transpose(adjacencyMatrix)
-    print '---------------------------'
-
-
-
-    for p in points:
-        ax.scatter(p.x,p.y,p.z)
-        ax.text(p.x,p.y,1.1*p.z,p.index)
-    for l in links:
-        A = points[l[0]]
-        B = points[l[1]]
-        xx = [A.x , B.x]
-        yy = [A.y , B.y]
-        zz = [A.z , B.z]
-        ax.plot(xx,yy,zz)
+    links.append([0,1])
+    links.append([1,2])
+    links.append([2,3])
+    links.append([3,0])
+    stl = mesh.Triangulation(stl = os.getcwd()+'/meshing/Bobomb_HD.stl')
+    tt = []
+    pts = stl.points
+    cd = []
+    for tri in stl.tris:
+        p0 = Point(pts[tri[0]][0],pts[tri[0]][1],pts[tri[0]][2])
+        p1 = Point(pts[tri[1]][0],pts[tri[1]][1],pts[tri[1]][2])
+        p2 = Point(pts[tri[2]][0],pts[tri[2]][1],pts[tri[2]][2])
+        tri0 = Triangle(p0,p1,p2)
+        norm = tri0.computeNormal()
+        cd.append(norm)
+        tt.append([norm[0],norm[1],norm[2]])
+        #tri0.draw(ax)
+    #meshio.write('test.vtu', stl.points,stl.cells, cell_data = {'normal' : np.array(tt)})# ells['quad'])    #{'mu':mu}
+    meshio.write('test.vtu', stl.points,stl.cells, cell_data = None)# ells['quad'])    #{'mu':mu}
     ax.axis('equal')
     plt.show()
     
