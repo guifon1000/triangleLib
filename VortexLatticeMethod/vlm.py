@@ -1,7 +1,10 @@
 import numpy as np
+import sys
+sys.path.append('..')
 import triangleLib as tl
 import matplotlib.pyplot as plt
 import fvlm
+
 
 class fluidPoint(tl.Point):
     def __init__(self,x,y,z):
