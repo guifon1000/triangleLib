@@ -84,6 +84,7 @@ class Vector:
         self.x=B[0]-A[0]
         self.y=B[1]-A[1]
         self.z=B[2]-A[2]
+        print self.x
         self.calcNorm0()
     def calcNorm0(self):
         self.norm0=math.sqrt(self.x**2+self.y**2+self.z**2)
@@ -174,8 +175,14 @@ def dot(u,v):
     return u.x*v.x+u.y*v.y+u.z*v.z
 
 def angle(u,v):
+    
     angle = np.arctan2(cross(u,v,norm=False).norm0,dot(u,v))
-    return angle
+    if dot(cross(u,v),Vector(0.,0.,1.0))>=0.:
+        return angle
+    else :
+        return -angle
+
+
 
 class Plane:
     """

@@ -8,7 +8,7 @@ def angleX(p):
     u = tl.Vector()
     u.fromPoints(A,B)
     v = tl.Vector(1.,0.,0.)
-    return tl.angle(u,v)
+    return tl.angle(v,u)
 
 
 def normal(p):
@@ -17,6 +17,7 @@ def normal(p):
     u = tl.Vector()
     u.fromPoints(A,B)
     v = tl.Vector(0.,0.,1.)
-    return [tl.cross(u,v)[0],tl.cross(u,v)[1]]
+    pv = tl.cross(v,u) 
+    return [pv[0],pv[1]]
 
 
