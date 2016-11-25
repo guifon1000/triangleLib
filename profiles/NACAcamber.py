@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N=100
+N=30
 tc=0.12
 corde=1.0
 m=0.00

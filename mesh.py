@@ -6,7 +6,7 @@ import triangleLib as tl
 import sys
 sys.path.append('./profiles/')
 import splineProfileMultiParam as prf
-from scipy.interpolate import splev
+
 
 class Triangulation(list):
     def __init__(self,stl = None):
@@ -31,92 +31,34 @@ class Triangulation(list):
 
 class thickWing(object):
     def __init__(self,pf,name):
-        span = 0.5
-        corde = 0.05
-        fac = 0.0
-        beta = 0.
-        n=5
-        forwardT = 0.75
-        spanWing = np.linspace(0.,span,num=n,endpoint=False)
-        def prandtl(x,R,corde,fac,beta):
-            expo = np.exp(-fac*(1.-x/R)/((x/R)*np.cos(beta)))
-            return corde*(2./np.pi)*np.arccos(expo)
-        chordSpan = prandtl(spanWing,span,corde,fac,beta)
         geom = pg.Geometry()
-        extrados = []
-        intrados = []
-        tip = []
-        base = []
-        for ispan in range(len(chordSpan)-1):
-            # we work between ispan and ispan + 1
-            ptsExtra0 = []
-            ptsExtra1 = []
-            ptsIntra0 = []
-            ptsIntra1 = []
-            for (i,x) in enumerate(pf.x):
-                p = geom.add_point(((x-forwardT)*chordSpan[ispan],pf.extra[i]*chordSpan[ispan],spanWing[ispan]),0.)
-                ptsExtra0.append(p)
-                p = geom.add_point(((x-forwardT)*chordSpan[ispan+1],pf.extra[i]*chordSpan[ispan+1],spanWing[ispan+1]),0.)
-                ptsExtra1.append(p)
-                p = geom.add_point(((x-forwardT)*chordSpan[ispan],pf.intra[i]*chordSpan[ispan],spanWing[ispan]),0.)
-                ptsIntra0.append(p)
-                p = geom.add_point(((x-forwardT)*chordSpan[ispan+1],pf.intra[i]*chordSpan[ispan+1],spanWing[ispan+1]),0.)
-                ptsIntra1.append(p)
-            for i in range(len(ptsExtra0)-1):
-                l0 = geom.add_line(ptsExtra0[i+1],ptsExtra0[i])
-                l1 = geom.add_line(ptsExtra1[i],ptsExtra1[i+1])
-                lf = geom.add_line(ptsExtra0[i],ptsExtra1[i])
-                lr = geom.add_line(ptsExtra1[i+1],ptsExtra0[i+1])
-                lloop = geom.add_line_loop([lf,l1,lr,l0])
-                extra = geom.add_ruled_surface(lloop)
-                extrados.append(extra)
-                geom._GMSH_CODE.append('Recombine Surface {%s};' % extra)
-                geom.add_physical_surface(extra)
-                l0 = geom.add_line(ptsIntra0[i],ptsIntra0[i+1])
-                l1 = geom.add_line(ptsIntra1[i+1],ptsIntra1[i])
-                lf = geom.add_line(ptsIntra1[i],ptsIntra0[i])
-                lr = geom.add_line(ptsIntra0[i+1],ptsIntra1[i+1])
-                lloop = geom.add_line_loop([l0,lr,l1,lf])
-                intra = geom.add_ruled_surface(lloop)
-                geom._GMSH_CODE.append('Recombine Surface {%s};' % intra)
-                geom.add_physical_surface(intra)
-                intrados.append(intra)
-            l0 = geom.add_line(ptsIntra1[-1],ptsIntra0[-1])
-            l1 = geom.add_line(ptsExtra1[-1],ptsIntra1[-1])
-            geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l1,3) )
-            l2 = geom.add_line(ptsExtra0[-1],ptsExtra1[-1])
-            l3 = geom.add_line(ptsIntra0[-1],ptsExtra0[-1])
-            geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l3,3) )
-            lloop = geom.add_line_loop([l0,l1,l2,l3])
-            tr_ed = geom.add_ruled_surface(lloop)
-            geom._GMSH_CODE.append('Recombine Surface {%s};' % tr_ed) 
-            geom.add_physical_surface(tr_ed)
-            if ispan == 0:
-                linesEx = []
-                linesIn = []
-                for i in range(len(ptsExtra0)-1):
-                    l0 = geom.add_line(ptsExtra0[i],ptsExtra0[i+1])
-                    linesEx.append(l0)
-                lte = geom.add_line(ptsExtra0[-1],ptsIntra0[-1])
-                geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (lte,3) )
-                for i in range(len(ptsExtra0)-1):
-                    l1 = geom.add_line(ptsIntra0[::-1][i],ptsIntra0[::-1][i+1])
-                    linesIn.append(l1)
-                #lloop = geom.add_line_loop(zob)
-                #base = geom.add_plane_surface(lines)
-                #geom.add_physical_surface(base)
-            #
+        ptsExtra = []
+        lns = []
+        for (i,x) in enumerate(pf.x):
+            p = geom.add_point((x,pf.extra[i],1.),0.)
+            ptsExtra.append(p)
+        for i in range(len(ptsExtra)-1):
+            l = geom.add_line(ptsExtra[i],ptsExtra[i+1])
+            lns.append(l)
+        ptsIntra = []
+        for (i,x) in enumerate(pf.x):
+            p = geom.add_point((x,pf.intra[i],1.),0.)
+            ptsIntra.append(p)
+        for i in range(len(ptsIntra)-1):
+            l = geom.add_line(ptsIntra[i],ptsIntra[i+1])
+            lns.append(l)
+        lnTe = geom.add_line(ptsExtra[-1],ptsIntra[-1])
+        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (lnTe,2) )
+        lns.append(lnTe)
+        lloop = geom.add_line_loop(lns)
+        sfStart = geom.add_ruled_surface(lloop) 
+        geom.add_physical_surface(sfStart) 
+                #geom._GMSH_CODE.append('Recombine Surface {%s};' % sfIntra)
         fg = open(name+'.geo','w')
         for l in geom.get_code():
             fg.write(l)
 
-        self.points, self.cells = pg.generate_mesh(geom)
 
-        self.X = np.array([p[0] for p in self.points])
-        self.Y = np.array([p[1] for p in self.points])
-        self.Z = np.array([p[2] for p in self.points])
-        self.quads = self.cells['quad']
-        meshio.write(name+'.vtu', self.points, self.cells)# ells['quad'])    #{'mu':mu}
 
 class surfaceMesh(object):
     def __init__(self,points,Nu,Nv):
@@ -124,7 +66,6 @@ class surfaceMesh(object):
         self.Nv = Nv
 
         geom = pg.Geometry()
-        MSHpts=[]
         for i,p in enumerate(points):
             p = geom.add_point([p.x,p.y,p.z],lcar=0.1)
             MSHpts.append(p)
