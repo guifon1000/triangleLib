@@ -177,6 +177,7 @@ def dot(u,v):
 def angle(u,v):
     
     angle = np.arctan2(cross(u,v,norm=False).norm0,dot(u,v))
+    if angle == 0.:return 0.
     if dot(cross(u,v),Vector(0.,0.,1.0))>=0.:
         return angle
     else :
