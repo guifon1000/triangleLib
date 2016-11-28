@@ -10,6 +10,10 @@ def angle(u,v):
 def cross(u,v):
     return tl.cross(tl.Vector(u[0],u[1]),tl.Vector(v[0],v[1]))[0:-1]
 
+def dot(u,v):
+    return u[0]*v[0] + u[1]*v[1]
+
+
 
 def angleX(panel):
     A = tl.Point(panel[0][0],panel[0][1])

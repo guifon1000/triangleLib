@@ -59,6 +59,44 @@ class thickWing(object):
             fg.write(l)
 
 
+def loadXfoilFile(name):
+    f = open(name,'r').readlines()
+    points = []
+    for i in range(1,len(f)):
+        l = f[i].split()
+        p = [float(l[0]),float(l[1])]
+        points.append(p)
+    panels = []
+    for i in range(len(points)-1):
+        p0 = points[i]
+        p1 = points[i+1]
+        panels.append([p0,p1])
+    return points,panels
+
+
+
+class meshAround2dObject(object):
+    def __init__(self,name):
+        points,panels = loadXfoilFile(name) 
+        geom = pg.Geometry()
+        for i,p in enumerate(panels):
+            p0 = p[0]
+            p1 = p[1]
+            p_0 = geom.add_point((p0[0],p0[1],0.),0.)
+            p_1 = geom.add_point((p1[0],p1[1],0.),0.)
+            l = geom.add_line(p_0,p_1)
+            plt.scatter([p0[0],p1[0]],[p0[1],p1[1]])
+        fg = open(name+'2D.geo','w')
+        for l in geom.get_code():
+            fg.write(l)
+        plt.axis('equal')
+        plt.show() 
+        
+
+
+
+
+
 
 class surfaceMesh(object):
     def __init__(self,points,Nu,Nv):
