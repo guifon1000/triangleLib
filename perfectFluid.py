@@ -11,7 +11,7 @@ def loadXfoilFile(name, method = 'Dipole'):
     points = []
     for i in range(1,len(f)):
         l = f[i].split()
-        p = PointElement(float(l[0]),float(l[1]))
+        p = PointElement(float(l[0]),3.*float(l[1]))
         points.append(p)
     panels = []
     for i in range(len(points)-1):
@@ -101,6 +101,23 @@ class LinearElement(list):
         prod = np.dot(self.ipmat,np.array([x,y]))
         out = [prod[0]+ori[0],prod[1]+ori[1]]
         return out
+    def plot(self,plt,axis = False):
+        for p in self:
+            plt.plot([self.xa,self.xb],[self.ya,self.yb],'sk')
+            if axis:
+                xloc = [1.,0.]
+                yloc = [0., 1.0]
+                xglob = np.dot(self.ipmat,xloc)
+                yglob = np.dot(self.ipmat,yloc)
+                plt.plot([self.origin[0],self.origin[0]+xglob[0]],\
+                         [self.origin[1],self.origin[1]+xglob[1]],\
+                         '*k')
+                plt.plot([self.origin[0],self.origin[0]+yglob[0]],\
+                         [self.origin[1],self.origin[1]+yglob[1]],\
+                         '*k')
+
+
+
 
 class Vortex(PointElement):
     def __init__(self,x,y,gamma=0.):
@@ -134,7 +151,7 @@ class Dipole(PointElement):
         dx = xl
         dy = yl
         ut = fac * dx*dy /(dy**2.+dx**2.)**2.
-        un = -0.5*fac * (dx**2.-dy**2.) /(dy**2.+dx**2.)**2.
+        un = 0.5*fac * (dx**2.-dy**2.) /(dy**2.+dx**2.)**2.
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
@@ -142,7 +159,7 @@ class Dipole(PointElement):
 
 
 class DipolePanel(LinearElement):
-    def __init__(self,p0,p1,mu=0.):
+    def __init__(self,p0,p1,mu=1.):
         super(DipolePanel,self).__init__(p0,p1)
         self.mu = mu
     def velocities(self,x,y,mode='local'):
@@ -154,13 +171,15 @@ class DipolePanel(LinearElement):
         dx1 = xl
         dx2 = xl - self.length
         dy = yl
-        ut = -fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
+        ut = fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
         un = fac * ( (dx1/(dx1**2. + dy**2.)) - (dx2/(dx2**2. + dy**2.)) )
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
             return [ut, un] 
-
+    def autoInflu(self):
+        self.autoInf = 2./(np.pi*self.length) 
+        return 2./(np.pi*self.length)
 
 class SourcePanel(LinearElement):
     def __init__(self,p0,p1,mu=0.):
@@ -171,18 +190,19 @@ class SourcePanel(LinearElement):
         warning : x,y in GLOBAL  COORDINATES
         """
         xl,yl = localPos(self,x,y)
-        print yl
         fac = self.mu/(2.*np.pi)
         dx1 = xl
         dx2 = xl - self.length
         dy = yl
-        ut = 0. * fac * np.log(   ( dx1**2. + dy**2.)/(dx2**2.+dy**2.))
+        ut = 0.5 * fac * np.log(   ( dx1**2. + dy**2.)/(dx2**2.+dy**2.))
         un = fac * (  np.arctan2(dy,dx2) - np.arctan2(dy,dx1) )
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
             return [ut, un] 
-
+    def autoInflu(self):
+        self.autoInf = 0.5
+        return 0.5
 
 class PanelArray(list):
     def __init__(self,tab):
@@ -194,30 +214,30 @@ class PanelArray(list):
 
 
 
-Nx = 20
-Ny = 20
+Nx = 200
+Ny = 200
 eps = 0.00001
 borne = 1.2
-Px = np.linspace(-2.0,2.25,num = Nx)
-Py = np.linspace(-2.5,2.5,num = Ny)
+Px = np.linspace(-0.25,1.25,num = Nx)
+Py = np.linspace(-0.25,0.25,num = Ny)
 X,Y = np.meshgrid(Px,Py)
-vinf = np.array([0.,0.])
+vinf = np.array([1.,0.])
 
-
-
-#panels = loadXfoilFile('NACAcamber0012.dat','Source')
-panels = []
-
-
-
-start = PointElement(0.,0.)
-Nl = 1
-l=2.0
-for i in range(1,Nl+1):
-    p = PointElement(start[0]+0.,start[1]+float(i)*1.0/Nl)
-    pan = SourcePanel(start,p)
-    start = p
-    panels.append(pan)
+mode = 'xfoil'
+singul = 'Source'
+if mode == 'mano':
+    panels = []
+    start = PointElement(0.,-0.1)
+    Nl = 1
+    L=0.2
+    p0 = start
+    for i in range(1,Nl+1):
+        p = PointElement(start[0],start[1]+float(i)*L/float(Nl))
+        pan = DipolePanel(start,p)
+        p0 = p
+        panels.append(pan)
+if mode =='xfoil':
+    panels = loadXfoilFile('NACAcamber0012.dat',singul)
 
 
 N = len(panels)
@@ -226,36 +246,36 @@ for i,pi in enumerate(panels):
     
     for j,pj in enumerate(panels):
         if i==j:
-            M[i,j] = 0.5
+            M[i,j] = pi.autoInflu()
         else:
-            M[i,j] = pi.velocities(pj.middle[0],pj.middle[1])[1]
+            M[i,j] = pj.velocities(pi.middle[0],pi.middle[1])[1]
         
-
-print M
-
 
 u , v = np.zeros_like(X),np.zeros_like(X)
 plt.clf()
 
-b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+
+if singul == 'Dipole':
+    b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+elif singul == 'Source':
+    b = [(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+
 
 stren = np.linalg.solve(M,b)
-print stren
 for i,p in enumerate(panels):
-    p.mu = 1.0
-
+    p.mu = stren[i]
 plt.clf()
 plt.plot(stren)
 plt.show()
 u[:] = vinf[0]
 v[:] = vinf[1]
 for p in panels:
+    p.plot(plt,axis = False)
     uloc = p.velocities(X,Y,mode='global')
-    plt.plot([p.xa,p.xb],[p.ya,p.yb])
     u += uloc[0]
     v += uloc[1]
 plt.axis('equal')
-plt.streamplot(X, Y, u,v, density=7, linewidth=1, arrowsize=1, arrowstyle='->')
+plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
 plt.show()
 
 
