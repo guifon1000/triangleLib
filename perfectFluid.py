@@ -171,14 +171,14 @@ class DipolePanel(LinearElement):
         dx1 = xl
         dx2 = xl - self.length
         dy = yl
-        ut = fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
+        ut = -fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
         un = fac * ( (dx1/(dx1**2. + dy**2.)) - (dx2/(dx2**2. + dy**2.)) )
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
             return [ut, un] 
     def autoInflu(self):
-        self.autoInf = 2./(np.pi*self.length) 
+        self.autoInf = -2./(np.pi*self.length) 
         return 2./(np.pi*self.length)
 
 class SourcePanel(LinearElement):
@@ -210,6 +210,26 @@ class PanelArray(list):
     def influenceMatrix(self):
         print 'initializing the influence matrix'
 
+        N = len(panels)
+        M = np.zeros((N,N),dtype=float)
+        for i,pi in enumerate(panels):
+    
+            for j,pj in enumerate(panels):
+                if i==j:
+                    M[i,j] = pi.autoInflu()
+                else:
+                    M[i,j] = pi.velocities(pj.middle[0],pj.middle[1])[1]
+        return  M
+
+    def rhs_freestream(self,vinf,others = None):
+        if singul == 'Dipole':
+            b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+        elif singul == 'Source':
+            b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+        return b
+
+
+
 
 
 
@@ -220,62 +240,50 @@ eps = 0.00001
 borne = 1.2
 Px = np.linspace(-0.25,1.25,num = Nx)
 Py = np.linspace(-0.25,0.25,num = Ny)
+Py = np.linspace(-2.,2.,num = Ny)
 X,Y = np.meshgrid(Px,Py)
 vinf = np.array([1.,0.])
 
-mode = 'xfoil'
-singul = 'Source'
+mode = 'mano'
+singul = 'Dipole'
+
 if mode == 'mano':
     panels = []
-    start = PointElement(0.,-0.1)
-    Nl = 1
+    Nl = 100
     L=0.2
-    p0 = start
+    L=1.0
+    pts = []
     for i in range(1,Nl+1):
-        p = PointElement(start[0],start[1]+float(i)*L/float(Nl))
-        pan = DipolePanel(start,p)
-        p0 = p
+        p0 = PointElement(float(i-1)*0.,float(i-1)*L/float(Nl)    )
+        p1 = PointElement(float(i-1)*0.,float(i)*L/float(Nl)    )
+        if singul == 'Source' : pan = SourcePanel(p0,p1)
+        if singul == 'Dipole' : pan = DipolePanel(p0,p1)
         panels.append(pan)
 if mode =='xfoil':
     panels = loadXfoilFile('NACAcamber0012.dat',singul)
 
-
-N = len(panels)
-M = np.zeros((N,N),dtype=float)
-for i,pi in enumerate(panels):
-    
-    for j,pj in enumerate(panels):
-        if i==j:
-            M[i,j] = pi.autoInflu()
-        else:
-            M[i,j] = pj.velocities(pi.middle[0],pi.middle[1])[1]
-        
-
+ppp = PanelArray(panels)
+M = ppp.influenceMatrix()
 u , v = np.zeros_like(X),np.zeros_like(X)
 plt.clf()
 
-
-if singul == 'Dipole':
-    b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
-elif singul == 'Source':
-    b = [(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
-
+b = ppp.rhs_freestream(vinf)
 
 stren = np.linalg.solve(M,b)
-for i,p in enumerate(panels):
+for i,p in enumerate(ppp):
     p.mu = stren[i]
 plt.clf()
 plt.plot(stren)
 plt.show()
 u[:] = vinf[0]
 v[:] = vinf[1]
-for p in panels:
+for p in ppp:
     p.plot(plt,axis = False)
     uloc = p.velocities(X,Y,mode='global')
     u += uloc[0]
     v += uloc[1]
 plt.axis('equal')
-plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
+plt.streamplot(X, Y, u,v, density=3, linewidth=1, arrowsize=1, arrowstyle='->')
 plt.show()
 
 
