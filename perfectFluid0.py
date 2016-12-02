@@ -75,7 +75,8 @@ class PointElement(list):
     def __init__(self,x,y):
         super(PointElement,self).__init__([x,y])
         self.origin = [self[0],self[1]]
-
+    def plot(self,plt,axis = False):
+        plt.scatter(self.origin[0],self.origin[1],marker='*')
 
 class LinearElement(list):
     def __init__(self,p0,p1):
@@ -103,7 +104,7 @@ class LinearElement(list):
         return out
     def plot(self,plt,axis = False):
         for p in self:
-            plt.plot([self.xa,self.xb],[self.ya,self.yb],'sk')
+            plt.plot([self.xa,self.xb],[self.ya,self.yb],'--k')
             if axis:
                 xloc = [1.,0.]
                 yloc = [0., 1.0]
@@ -134,13 +135,6 @@ class Vortex(PointElement):
             return [ut, un]
         return [ut, un]
             
-class VortexParticule(Vortex):
-    def __init__(self,x,y,gamma=0.):
-        super(VortexParticule,self).__init__(x,y,gamma)
-	orientation(self,[1.,0.00001])
-	self.x = x
-	self.y = y
-        self.speed = [0.,0.]
 
 
 class Dipole(PointElement):
@@ -178,14 +172,14 @@ class DipolePanel(LinearElement):
         dx1 = xl
         dx2 = xl - self.length
         dy = yl
-        ut = -fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
+        ut = fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
         un = fac * ( (dx1/(dx1**2. + dy**2.)) - (dx2/(dx2**2. + dy**2.)) )
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
             return [ut, un] 
     def autoInflu(self):
-        self.autoInf = -2./(np.pi*self.length) 
+        self.autoInf = 2./(np.pi*self.length) 
         return 2./(np.pi*self.length)
 
 class SourcePanel(LinearElement):
@@ -217,130 +211,193 @@ class PanelArray(list):
     def influenceMatrix(self):
         print 'initializing the influence matrix'
 
-        N = len(panels)
-        M = np.zeros((N,N),dtype=float)
-        for i,pi in enumerate(panels):
+
+class Particule(Vortex):
+    def __init__(self,x,y,gamma=0.,t=0.):
+        super(Particule,self).__init__(x,y,gamma)
+        self.time = t
+        self.vel = np.array([0.,0.])
+    def influence(self,panel):
+        return np.dot(self.velocities(panel.middle[0],panel.middle[1]),panel.pmat)
     
-            for j,pj in enumerate(panels):
-                if i==j:
-                    M[i,j] = pi.autoInflu()
-                else:
-                    M[i,j] = pi.velocities(pj.middle[0],pj.middle[1])[1]
-        return  M
-
-    def rhs_freestream(self,vinf,others = None):
-        if others != None :
-	    rhs = np.zeros(len(self),dtype = float)
-	    print 'wake !!!'
-	    for i,p in enumerate(self):
-	        mid = p.middle
-		rhs[i] = -(vinf[0]*p.n[0]+vinf[1]*p.n[1])
-		for o in others:
-		    ve = o.velocities(mid[0],mid[1])
-		    rhs[i]+=-(ve[0]*p.n[0]+ve[1]*p.n[1])
-	    return rhs
-	else : 
-            if singul == 'Dipole':
-                b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in self]
-            elif singul == 'Source':
-                b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in self]
-        return b
+    
+    
+def particuleVelocity(part,x,y):
+    for (i,p) in enumerate(part):
+        return [p.influence(x,y)[0],p.influence(x,y)[1]]
 
 
+Nx = 400
+Ny = 400
+eps = 0.00001
+borne = 1.2
+Px = np.linspace(-0.05,1.,num = Nx)
+Py = np.linspace(-0.15,0.15,num = Ny)
+X,Y = np.meshgrid(Px,Py)
+vinf = np.array([1.,0.01])
 
-def showAll():
-    plt.clf()
-    u , v = np.zeros_like(X),np.zeros_like(X)
+mode = 'mano'
+mode = 'wake'
+singul = 'Dipole'
+if mode == 'mano':
+    panels = []
+    start = PointElement(0.,-0.1)
+    Nl = 1
+    L=0.2
+    p0 = start
+    for i in range(1,Nl+1):
+        p = PointElement(start[0],start[1]+float(i)*L/float(Nl))
+        if singul == 'Dipole': pan = DipolePanel(start,p)
+        if singul == 'Source': pan = SourcePanel(start,p)
+        p0 = p
+        panels.append(pan)
+if mode =='xfoil':
+    panels = loadXfoilFile('NACAcamber0012.dat',singul)
+if mode =='wake':
+    panels = [] 
+    A = PointElement(0.,0.05)
+    B = PointElement(0.4,-0.05)
+
+    C = PointElement(0.3,0.05)
+    D = PointElement(0.7,-0.1)
+    if singul == 'Dipole': 
+        pan = DipolePanel(A,B)
+        panels.append(pan)
+        pan = DipolePanel(B,C)
+        #panels.append(pan)
+        pan = DipolePanel(C,D)
+        #panels.append(pan)
+    if singul == 'Source': 
+        pan = SourcePanel(A,B)
+        panels.append(pan)
+        pan = SourcePanel(B,C)
+        panels.append(pan)
+
+
+
+dt = 0.1
+
+tredge = PointElement(panels[-1][-1][0],panels[-1][-1][1])
+Pl = PointElement(panels[-1][-1][0]+vinf[0]*dt,panels[-1][-1][1]+vinf[1]*dt)
+
+
+particules = []
+
+lastPanel = DipolePanel(tredge,Pl)
+panels.append(lastPanel)
+       
+N = len(panels)
+M = np.zeros((N-1,N-1),dtype=float)
+for i,pi in enumerate(panels[:-1]):
+    
+    for j,pj in enumerate(panels[:-1]):
+        if i==j:
+            M[i,j] = pi.autoInflu()
+        else:
+            M[i,j] = pj.velocities(pi.middle[0],pi.middle[1])[1]
+        
+u , v = np.zeros_like(X),np.zeros_like(X)
+plt.clf()
+
+particules.append(Vortex(Pl[0],Pl[1],1.))
+
+for it in range(2):
+    vinf2 = vinf
+    Npart = len(particules)
+    Mpart = np.zeros((Npart,Npart),dtype=float)
+
+   # advection
+    for ip,pi in enumerate(particules):
+        pi.vel = [vinf[0],vinf[1]]
+        for pa in panels:
+            uu = pa.velocities(pi[0],pi[1],mode = 'global')
+            pi.vel[0]+=uu[0]
+            pi.vel[1]+=uu[1]
+        for jp,pj in enumerate(particules) :
+            if ip!=jp:
+                uu = pj.velocities(pi[0],pi[1],mode = 'global')
+                pi.vel[0]+=uu[0] 
+                pi.vel[1]+=uu[1] 
+        pi[0]+=pi.vel[0]*dt
+        pi[1]+=pi.vel[1]*dt
+
+    b = np.zeros(N-1,dtype = float)
+    for i,p in enumerate(panels[:-1]):
+        vv = vinf2
+        for pp in particules:
+            up = pp.velocities(p.middle[0],p.middle[1],mode = 'global')
+            vv[0] += up[0]
+            vv[1] += up[1]
+        b[i] = -(vv[0]*p.n[0]+vv[1]*p.n[1])
+
+
+    stren = np.linalg.solve(M,b)
+    for i,p in enumerate(panels[:-1]):
+        p.mu = stren[i]
+
+    particules.append(Particule(Pl[0],Pl[1],1.))
+    particules[-1].vel = vinf
+
+
     u[:] = vinf[0]
     v[:] = vinf[1]
-    for p in ppp:
-        p.plot(plt,axis = False)
+    for i,p in enumerate(panels):
+        if p!= panels[-1]:
+            p.plot(plt,axis = False)
+        else:
+            plt.scatter(p.xb,p.yb) 
         uloc = p.velocities(X,Y,mode='global')
         u += uloc[0]
         v += uloc[1]
-    for p in others:
-    #p.plot(plt,axis = False)
+    for i,p in enumerate(particules):
+        plt.scatter(p[0],p[1]) 
         uloc = p.velocities(X,Y,mode='global')
         u += uloc[0]
         v += uloc[1]
     plt.axis('equal')
-    plt.streamplot(X, Y, u,v, density=3, linewidth=1, arrowsize=1, arrowstyle='->')
+    plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
     plt.show()
 
-
-
-
-Nx = 200
-Ny = 200
-eps = 0.00001
-borne = 1.2
-Px = np.linspace(-0.25,5.25,num = Nx)
-Py = np.linspace(-0.25,0.25,num = Ny)
-Py = np.linspace(-2.,2.,num = Ny)
-X,Y = np.meshgrid(Px,Py)
-vinf = np.array([1.,0.])
-
-mode = 'mano'
-singul = 'Dipole'
-
-if mode == 'mano':
-    panels = []
-    Nl = 100
-    L=0.2
-    L=1.0
-    pts = []
-    for i in range(1,Nl+1):
-        p0 = PointElement(float(i-1)*0.,float(i-1)*L/float(Nl)    )
-        p1 = PointElement(float(i-1)*0.,float(i)*L/float(Nl)    )
-        if singul == 'Source' : pan = SourcePanel(p0,p1)
-        if singul == 'Dipole' : pan = DipolePanel(p0,p1)
-        panels.append(pan)
-if mode =='xfoil':
-    panels = loadXfoilFile('NACAcamber0012.dat',singul)
-
-ppp = PanelArray(panels)
-M = ppp.influenceMatrix()
+    print "zob"
 
 
 
 
 
+if singul == 'Dipole':
+    b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels[:-1]]
+elif singul == 'Source':
+    b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels[:-1]]
 
-others = [VortexParticule(1.,0.,gamma = 8.5)]
-
-others.append(VortexParticule(3.,-0.5,gamma = -2.5))
-dt = 0.5
 
 
-b = ppp.rhs_freestream(vinf,others = others)
 stren = np.linalg.solve(M,b)
-for i,p in enumerate(ppp):
+for i,p in enumerate(panels[:-1]):
     p.mu = stren[i]
+plt.clf()
 
 
+panels[-1].mu=stren[-1]
 
-for it in range(10):
-    for i,oi in enumerate(others):
-        
-        for j,oj in enumerate(others):
-	    if i!=j : 
-	        oi.speed[0] += oj.velocities(oi[0],oi[1],mode = 'global')[0]    
-	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
+lastVec = panels[-1].t
 
-        for j,pj in enumerate(ppp):
-	    print pj.mu
-	    oi.speed[0] += pj.velocities(oi[0],oi[1],mode = 'local')[0] 
-	    oi.speed[1] += pj.velocities(oi[0],oi[1],mode = 'local')[1]
-    for i,oi in enumerate(others):
-        oi[0]+=oi.speed[0]*dt
-        oi[1]+=oi.speed[1]*dt
 
-    b = ppp.rhs_freestream(vinf,others = others)
+#panels.append(Vortex(lastPanel[0]+fac*lastVec[0],lastPanel[1]+fac*lastVec[1],stren[-1]*-1.))
 
-    stren = np.linalg.solve(M,b)
 
-    for i,p in enumerate(ppp):
-        p.mu = stren[i]
+u[:] = vinf[0]
+v[:] = vinf[1]
+for i,p in enumerate(panels):
+    if p!= panels[-1]:
+         p.plot(plt,axis = False)
+    else:
+         plt.scatter(p.xb,p.yb) 
+    uloc = p.velocities(X,Y,mode='global')
+    u += uloc[0]
+    v += uloc[1]
+plt.axis('equal')
+plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
+plt.show()
 
-    showAll()
+
 print '--------'
