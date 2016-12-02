@@ -131,9 +131,16 @@ class Vortex(PointElement):
         ut = fac * dy /(dy**2.+dx**2.)
         un = -fac * dx /(dy**2.+dx**2.)
         if mode == 'global':
-            pass
+            return [ut, un]
         return [ut, un]
             
+class VortexParticule(Vortex):
+    def __init__(self,x,y,gamma=0.):
+        super(VortexParticule,self).__init__(x,y,gamma)
+	orientation(self,[1.,0.00001])
+	self.x = x
+	self.y = y
+        self.speed = [0.,0.]
 
 
 class Dipole(PointElement):
@@ -222,14 +229,43 @@ class PanelArray(list):
         return  M
 
     def rhs_freestream(self,vinf,others = None):
-        if singul == 'Dipole':
-            b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
-        elif singul == 'Source':
-            b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in panels]
+        if others != None :
+	    rhs = np.zeros(len(self),dtype = float)
+	    print 'wake !!!'
+	    for i,p in enumerate(self):
+	        mid = p.middle
+		rhs[i] = -(vinf[0]*p.n[0]+vinf[1]*p.n[1])
+		for o in others:
+		    ve = o.velocities(mid[0],mid[1])
+		    rhs[i]+=-(ve[0]*p.n[0]+ve[1]*p.n[1])
+	    return rhs
+	else : 
+            if singul == 'Dipole':
+                b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in self]
+            elif singul == 'Source':
+                b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in self]
         return b
 
 
 
+def showAll():
+    plt.clf()
+    u , v = np.zeros_like(X),np.zeros_like(X)
+    u[:] = vinf[0]
+    v[:] = vinf[1]
+    for p in ppp:
+        p.plot(plt,axis = False)
+        uloc = p.velocities(X,Y,mode='global')
+        u += uloc[0]
+        v += uloc[1]
+    for p in others:
+    #p.plot(plt,axis = False)
+        uloc = p.velocities(X,Y,mode='global')
+        u += uloc[0]
+        v += uloc[1]
+    plt.axis('equal')
+    plt.streamplot(X, Y, u,v, density=3, linewidth=1, arrowsize=1, arrowstyle='->')
+    plt.show()
 
 
 
@@ -238,7 +274,7 @@ Nx = 200
 Ny = 200
 eps = 0.00001
 borne = 1.2
-Px = np.linspace(-0.25,1.25,num = Nx)
+Px = np.linspace(-0.25,5.25,num = Nx)
 Py = np.linspace(-0.25,0.25,num = Ny)
 Py = np.linspace(-2.,2.,num = Ny)
 X,Y = np.meshgrid(Px,Py)
@@ -264,27 +300,40 @@ if mode =='xfoil':
 
 ppp = PanelArray(panels)
 M = ppp.influenceMatrix()
-u , v = np.zeros_like(X),np.zeros_like(X)
-plt.clf()
-
-b = ppp.rhs_freestream(vinf)
-
-stren = np.linalg.solve(M,b)
-for i,p in enumerate(ppp):
-    p.mu = stren[i]
-plt.clf()
-plt.plot(stren)
-plt.show()
-u[:] = vinf[0]
-v[:] = vinf[1]
-for p in ppp:
-    p.plot(plt,axis = False)
-    uloc = p.velocities(X,Y,mode='global')
-    u += uloc[0]
-    v += uloc[1]
-plt.axis('equal')
-plt.streamplot(X, Y, u,v, density=3, linewidth=1, arrowsize=1, arrowstyle='->')
-plt.show()
 
 
+
+
+
+
+others = [VortexParticule(1.,0.,gamma = 8.5)]
+
+others.append(VortexParticule(3.,-0.5,gamma = -2.5))
+dt = 0.5
+
+
+
+for it in range(10):
+    for i,oi in enumerate(others):
+        
+        for j,oj in enumerate(others):
+	    if i!=j : 
+	        oi.speed[0] += oj.velocities(oi[0],oi[1],mode = 'global')[0]    
+	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
+
+        #for j,pj in enumerate(ppp):
+	    #oi.speed[0] += pj.velocities(oi.x,oi.y,mode = 'global')[0] 
+	    #oi.speed[1] += pj.velocities(oi[0],oi[1],mode = 'global')[1]
+    for i,oi in enumerate(others):
+        oi[0]+=oi.speed[0]*dt
+        oi[1]+=oi.speed[1]*dt
+
+    b = ppp.rhs_freestream(vinf,others = others)
+
+    stren = np.linalg.solve(M,b)
+
+    for i,p in enumerate(ppp):
+        p.mu = stren[i]
+
+    showAll()
 print '--------'
