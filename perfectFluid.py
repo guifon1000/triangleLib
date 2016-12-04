@@ -1,5 +1,7 @@
 import numpy as np
 import bidLib as bid
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -135,12 +137,12 @@ class Vortex(PointElement):
         return [ut, un]
             
 class VortexParticule(Vortex):
-    def __init__(self,x,y,gamma=0.):
+    def __init__(self,x,y,gamma=0.,vinf = [0.,0.]):
         super(VortexParticule,self).__init__(x,y,gamma)
-	orientation(self,[1.,0.00001])
+	orientation(self,[1.,0.])
 	self.x = x
 	self.y = y
-        self.speed = [0.,0.]
+        self.speed = [vinf[0],vinf[1]]
 
 
 class Dipole(PointElement):
@@ -246,9 +248,29 @@ class PanelArray(list):
                 b = [-(vinf[0]*p.n[0]+vinf[1]*p.n[1]) for p in self]
         return b
 
+def update_particle_speeds(part,panels = None):
+    for i,oi in enumerate(part):
+        oi.speed=[0.,0.]    
+        for j,oj in enumerate(others):
+	    if i!=j : 
+	        oi.speed[0] += oj.velocities(oi[0],oi[1],mode = 'global')[0]    
+	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
+        if panels != None :
+            for j,pj in enumerate(panels):
+	        oi.speed[0] += pj.velocities(oi[0],oi[1],mode = 'local')[0] 
+	        oi.speed[1] += pj.velocities(oi[0],oi[1],mode = 'local')[1]
+            oi.speed[0] += vinf[0]
+            oi.speed[1] += vinf[1]    
+ 
+def advection_particules(part,dt):
+    for i,oi in enumerate(part):
+        oi[0]+=oi.speed[0]*dt
+        oi[1]+=oi.speed[1]*dt
 
 
-def showAll():
+
+
+def showAll(it):
     plt.clf()
     u , v = np.zeros_like(X),np.zeros_like(X)
     u[:] = vinf[0]
@@ -260,38 +282,40 @@ def showAll():
         v += uloc[1]
     for p in others:
     #p.plot(plt,axis = False)
+        plt.scatter(p[0],p[1],c = 'r')
         uloc = p.velocities(X,Y,mode='global')
         u += uloc[0]
         v += uloc[1]
     plt.axis('equal')
-    plt.streamplot(X, Y, u,v, density=3, linewidth=1, arrowsize=1, arrowstyle='->')
-    plt.show()
+    plt.streamplot(X, Y, u,v, density=1, linewidth=1, arrowsize=1, arrowstyle='->')
+    plt.xlim(-0.5,20.75)
+    plt.ylim(-0.25,0.25)
+    plt.savefig('./imgpf/img_'+str(it)+'.png')
 
 
 
 
-Nx = 200
-Ny = 200
+Nx = 50
+Ny = 50
 eps = 0.00001
 borne = 1.2
-Px = np.linspace(-0.25,5.25,num = Nx)
-Py = np.linspace(-0.25,0.25,num = Ny)
-Py = np.linspace(-2.,2.,num = Ny)
+Px = np.linspace(-0.25,18.25,num = Nx)
+Py = np.linspace(-5.,5.,num = Ny)
 X,Y = np.meshgrid(Px,Py)
-vinf = np.array([1.,0.])
+vinf = np.array([10.75,0.])
 
 mode = 'mano'
 singul = 'Dipole'
 
 if mode == 'mano':
     panels = []
-    Nl = 100
-    L=0.2
-    L=1.0
+    Nl = 13
+    L=0.5
+    L=2.0
     pts = []
     for i in range(1,Nl+1):
-        p0 = PointElement(float(i-1)*0.,float(i-1)*L/float(Nl)    )
-        p1 = PointElement(float(i-1)*0.,float(i)*L/float(Nl)    )
+        p0 = PointElement(float(i-1)*L/float(Nl) ,-0.005*float(i-1)*float(i-1)*L/float(Nl)    )
+        p1 = PointElement(float(i)*L/float(Nl)  ,-0.005*float(i)*float(i)*L/float(Nl)    )
         if singul == 'Source' : pan = SourcePanel(p0,p1)
         if singul == 'Dipole' : pan = DipolePanel(p0,p1)
         panels.append(pan)
@@ -304,43 +328,36 @@ M = ppp.influenceMatrix()
 
 
 
+alpha_L = 0.05
 
 
-others = [VortexParticule(1.,0.,gamma = 8.5)]
-
-others.append(VortexParticule(3.,-0.5,gamma = -2.5))
-dt = 0.5
-
-
-b = ppp.rhs_freestream(vinf,others = others)
-stren = np.linalg.solve(M,b)
-for i,p in enumerate(ppp):
-    p.mu = stren[i]
+dt = 0.05
 
 
 
-for it in range(10):
-    for i,oi in enumerate(others):
-        
-        for j,oj in enumerate(others):
-	    if i!=j : 
-	        oi.speed[0] += oj.velocities(oi[0],oi[1],mode = 'global')[0]    
-	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
+others=[]
 
-        for j,pj in enumerate(ppp):
-	    print pj.mu
-	    oi.speed[0] += pj.velocities(oi[0],oi[1],mode = 'local')[0] 
-	    oi.speed[1] += pj.velocities(oi[0],oi[1],mode = 'local')[1]
-    for i,oi in enumerate(others):
-        oi[0]+=oi.speed[0]*dt
-        oi[1]+=oi.speed[1]*dt
-
+for it in range(2000):
+    print it 
+    panels = []
+    for i in range(1,Nl+1):
+        p0 = PointElement(float(i-1)*L/float(Nl) ,\
+                -0.01*np.cos(7.*float(it)*dt)*float(i-1)*float(i-1)*L/float(Nl)    )
+        p1 = PointElement(float(i)*L/float(Nl)  ,\
+                -0.01*np.cos(7.*float(it)*dt)*float(i)*float(i)*L/float(Nl)    )
+        pan = DipolePanel(p0,p1)
+        panels.append(pan)
+    ppp = PanelArray(panels)
+    M = ppp.influenceMatrix()
     b = ppp.rhs_freestream(vinf,others = others)
-
     stren = np.linalg.solve(M,b)
-
+    pl = [ppp[-1][-1][0],ppp[-1][-1][1]]
+    pl[0]*=alpha_L+1.
+    pl[1]*=alpha_L+1.
+    others.append(VortexParticule(pl[0],pl[1],gamma = 2.*stren[-1]))
     for i,p in enumerate(ppp):
         p.mu = stren[i]
-
-    showAll()
+    update_particle_speeds(others,panels)
+    advection_particules(others,dt)
+    showAll(it)
 print '--------'

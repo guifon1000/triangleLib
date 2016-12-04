@@ -1,6 +1,6 @@
 import numpy as np
-import meshio
-import pygmsh as pg
+#import meshio
+#import pygmsh as pg
 import matplotlib.pyplot as plt
 import triangleLib as tl
 import sys

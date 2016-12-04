@@ -6,7 +6,7 @@ from time import sleep
 import math
 import mesh
 import os
-import meshio
+#import meshio
 
 
 class Point(list):
