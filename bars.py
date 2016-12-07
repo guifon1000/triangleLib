@@ -49,18 +49,53 @@ class Bar(tl.Segment):
            [-1,0,0,1,0,0],\
            [0,0,0,0,0,0],\
            [0,0,0,0,0,0]]
-
-
-	#print '\n\n\n # # # # # # NEW ELEMENT # # # # # # # #'
-        #print '======= Rigidity Matrix (local) ========' 
         rm = np.dot(np.array(k),self.stif)
-	#print rm
-	#print '============ Passage Matrix ============'     
         mp = diagBlock(self.matrix,2)
-	#print mp
-	#print '======= Rigidity Matrix (global) ======='    
         mpt=np.transpose(mp)
 	self.rml = np.dot(mpt,np.dot(rm,mp))
+
+
+
+class Beam2D(tl.Segment):
+    def __init__(self , pt1 =  None, pt2 = None,stif = 1.0,index=None,S = 1.0, E = 1.0):
+        super(Beam2D,self).__init__(pt1,pt2)  
+        self.stif = stif
+        ux = tl.Vector(pt2[0]-pt1[0],pt2[1]-pt1[1],pt2[2]-pt1[2])
+        L = ux.norm0
+        ux.normalize()
+        self.Ux = ux
+        self.Uz = tl.Vector(0.,0.,1.)
+        self.Uy = tl.cross(self.Uz,self.Ux)
+        matrix = np.zeros((3,3),dtype = float)
+        matrix[0,:] = [self.Ux[i] for i in range(3)]
+        matrix[1,:] = [self.Uy[i] for i in range(3)]
+        matrix[2,:] = [self.Uz[i] for i in range(3)]
+        self.matrix = matrix
+        print L 
+        print 'tetetetetetet'
+        # local stiffness
+        k=np.zeros((2,2),dtype=float)
+        k=[[1,0,0,-1,0,0],\
+           [0,0,0,0,0,0],\
+           [0,0,0,0,0,0],\
+           [-1,0,0,1,0,0],\
+           [0,0,0,0,0,0],\
+           [0,0,0,0,0,0]]
+        rm = np.dot(np.array(k),self.stif)
+        mp = diagBlock(self.matrix,2)
+        mpt=np.transpose(mp)
+        self.rml = np.dot(mpt,np.dot(rm,mp))
+
+
+
+
+
+
+
+
+
+
+
          
 
 def createGlobalStiffnessMatrix(nodes,elements):
@@ -70,7 +105,7 @@ def createGlobalStiffnessMatrix(nodes,elements):
         n1 = nodes[e[0]]
         n2 = nodes[e[1]]
 	x = np.zeros((3*len(nodes),3*len(nodes)),dtype = float)
-	b=Bar(n1,n2,stif = kk)
+	b=Beam2D(n1,n2,stif = kk)
 	y = b.rml
 	x[e[0]*3:e[0]*3+3,e[1]*3:e[1]*3+3]=y[0:3,3:6]
 	x[e[0]*3:e[0]*3+3,e[0]*3:e[0]*3+3]=y[0:3,0:3]
@@ -133,13 +168,9 @@ if __name__ == '__main__':
     L = 10.
     nodes = []
 
-    nodes.append(Node(0,L,0,ddl = 'fixed'))
-    nodes.append(Node(L,0,0,ddl = 'fixed'))
-    nodes.append(Node(0,-L,0,ddl = 'fixed'))
-    nodes.append(Node(-L,0,0,ddl = 'fixed'))
-    nodes.append(Node(-L/2,L/2.,0,ddl = ['x','y']))    
-    nodes.append(Node(L/2,-L/2.,0,ddl = ['x','y']))    
-    nodes.append(Node(0,0,0,ddl = ['y']))    
+    nodes.append(Node(0,0,0,ddl = 'fixed'))
+    nodes.append(Node(L,0,0,ddl = ['x','y']))
+    nodes.append(Node(2.*L,0.0001,0,ddl = 'fixed'))
     
     
     
@@ -150,10 +181,10 @@ if __name__ == '__main__':
     print 'positions :' 
     print positions
 
-    elements = [[0,4],[1,4],[2,5],[3,5],[4,6],[6,5]]
+    elements = [[0,1],[1,2]]
 
 
-    f= np.array([0,0,0,0,-10000])
+    f= np.array([0,-150000])
     print f
     gg=createGlobalStiffnessMatrix(nodes,elements)
     print '---------------------------------'
