@@ -112,7 +112,7 @@ class LinearElement(list):
         return out
     def plot(self,plt,axis = False):
         for p in self:
-            plt.plot([self.xa,self.xb],[self.ya,self.yb],'sk',markersize = 1.)
+            plt.plot([self.xa,self.xb],[self.ya,self.yb],'sk',markersize = 3.)
             if axis:
                 xloc = [1.,0.]
                 yloc = [0., 1.0]
@@ -189,14 +189,14 @@ class DipolePanel(LinearElement):
         dy = yl
         # - + : like in katz
         ut = -fac * ( (dy/(dx1**2. + dy**2.)) - (dy/(dx2**2. + dy**2.)) )
-        un = -fac * ( (dx1/(dx1**2. + dy**2.)) - (dx2/(dx2**2. + dy**2.)) )
+        un = fac * ( (dx1/(dx1**2. + dy**2.)) - (dx2/(dx2**2. + dy**2.)) )
         if mode == 'global':
             return globalVel(self,ut,un)
         else:
             return [ut, un] 
     def autoInflu(self):
-        self.autoInf = 2./(np.pi*self.length) 
-        return 2./(np.pi*self.length)
+        self.autoInf = -2./(np.pi*self.length) 
+        return -2./(np.pi*self.length)
 
 class SourcePanel(LinearElement):
     def __init__(self,p0,p1,mu=0.):
@@ -224,17 +224,45 @@ class SourcePanel(LinearElement):
 class PanelArray(list):
     def __init__(self,tab):
         super(PanelArray,self).__init__(tab)
+
     def influenceMatrix(self):
         N = len(panels)
         M = np.zeros((N,N),dtype=float)
         for i,pi in enumerate(panels):
-    
+            pi.mu = 1. 
             for j,pj in enumerate(panels):
+                pj.mu = 1.0
                 if i==j:
-                    M[i,j] = pi.autoInflu()
+                    M[i,j] = -pi.autoInflu()
                 else:
-                    M[i,j] = pi.velocities(pj.middle[0],pj.middle[1])[1]
+                    vv = np.array(pj.velocities(pi.middle[0],pi.middle[1]))
+                    p1 = np.dot(vv,pj.ipmat)
+                    p2 = np.dot(p1,pi.pmat)
+                    M[i,j] = p2[1]
         return  M
+
+
+
+    def normalVel(self,vinf,others = None):
+        nv = np.zeros(len(self),dtype = float)
+	for i,pi in enumerate(self):
+	    mid = pi.middle
+	    nv[i] = (vinf[0]*pi.n[0]+vinf[1]*pi.n[1])
+            for j,pj in enumerate(self):
+                if i!= j:
+                    vv = np.array(pj.velocities(mid[0],mid[1]))
+                    p1 = np.dot(vv,pj.ipmat)
+                    p2 = np.dot(p1,pi.pmat)
+                    nv[i]+=p2[1]
+                else :
+                    nv[i]+= 2.*pi.mu/(pi.length*np.pi)
+	    for o in others:
+		ve = o.velocities(mid[0],mid[1])
+		nv[i]+=ve[1]
+        return nv
+
+
+
 
     def rhs_freestream(self,vinf,others = None):
         if others != None :
@@ -262,8 +290,8 @@ def update_particle_speeds(part,panels = None):
 	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
         if panels != None :
             for j,pj in enumerate(panels):
-	        oi.speed[0] += pj.velocities(oi[0],oi[1],mode = 'local')[0] 
-	        oi.speed[1] += pj.velocities(oi[0],oi[1],mode = 'local')[1]
+	        oi.speed[0] += 0.*pj.velocities(oi[0],oi[1],mode = 'local')[0] 
+	        oi.speed[1] += 0.*pj.velocities(oi[0],oi[1],mode = 'local')[1]
             oi.speed[0] += vinf[0]
             oi.speed[1] += vinf[1]    
  
@@ -292,70 +320,65 @@ def showAll(it):
         u += uloc[0]
         v += uloc[1]
     plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
-    plt.xlim(-0.5,1.5)
-    plt.ylim(-1.,1.)
+    plt.xlim(xmin, xmax)
+    plt.ylim(ymin,ymax)
     plt.savefig('./imgpf/img_'+str(it)+'.png')
 
 
+xmin = -0.5
+xmax =  3.
 
 
-Nx = 50
-Ny = 50
+Nx = 150
+Ny = 150
+
+
+ymin = - (0.5 * (xmax-xmin))
+ymax =  (0.5 * (xmax-xmin))
+
+
 eps = 0.00001
 borne = 1.2
-Px = np.linspace(-0.5,1.5,num = Nx)
-Py = np.linspace(-1.,1.,num = Ny)
+Px = np.linspace(xmin,xmax,num = Nx)
+Py = np.linspace(ymin,ymax,num = Ny)
 X,Y = np.meshgrid(Px,Py)
 vinf = np.array([1.,0.])
 
-mode = 'mano'
+geom = 'mano'
+mode = 'unsteady'
 singul = 'Dipole'
-
-if mode == 'mano':
-    panels = []
-    Nl = 5
-    L=0.2
-    pts = []
-    for i in range(1,Nl+1):
-        p0 = PointElement(float(i-1)*L/float(Nl) ,-float(i-1)*float(i-1)*L/float(Nl)    )
-        p1 = PointElement(float(i)*L/float(Nl)  ,-float(i)*float(i)*L/float(Nl)    )
-        if singul == 'Source' : pan = SourcePanel(p0,p1)
-        if singul == 'Dipole' : pan = DipolePanel(p0,p1)
-        panels.append(pan)
-if mode =='xfoil':
-    panels = loadXfoilFile('NACAcamber0012.dat',singul)
-
-ppp = PanelArray(panels)
-M = ppp.influenceMatrix()
-
-
-
-
-alpha_L = 0.02
-
-
-dt = 0.05
+alpha_L = 01.02
+dt = 0.5
+Nl = 2
+L = 0.8
 
 
 
 others=[]
 
-for it in range(2000):
+
+if mode == 'stationary':
+    Nit = 1
+elif mode == 'unsteady':
+    Nit = 2000
+
+
+
+for it in range(Nit):
     print it
     pl = None
-    if mode =='mano' :
+    if geom =='mano' :
         panels = []
         for i in range(1,Nl+1):
             p0 = PointElement(float(i-1)*L/float(Nl) ,\
-                -0.1*np.cos(7.*float(it)*dt)*float(i-1)*float(i-1)*L/float(Nl)    )
+                -0.5*np.cos(0.*float(it)*dt)*float(i-1)*float(i-1)*L/float(Nl)    )
             p1 = PointElement(float(i)*L/float(Nl)  ,\
-                -0.1*np.cos(7.*float(it)*dt)*float(i)*float(i)*L/float(Nl)    )
+                -0.5*np.cos(0.*float(it)*dt)*float(i)*float(i)*L/float(Nl)    )
             pan = DipolePanel(p0,p1)
             panels.append(pan)
-        pl = [ppp[-1][-1][0],ppp[-1][-1][1]]
-        pl[0]*=alpha_L+1.
-        pl[1]*=alpha_L+1.
-    elif mode =='xfoil' :
+        ppp = PanelArray(panels)
+        pl = [ppp[-1][1][0]+vinf[0]*dt,ppp[-1][1][1]+vinf[1]*dt]
+    elif geom =='xfoil' :
         panels = loadXfoilFile('NACAcamber0012.dat',singul,alpha = 0.,scale = 1.)
         trex = 0.5*(panels[0][0][0]+panels[-1][1][0])
         trey = 0.5*(panels[0][0][1]+panels[-1][1][1])
@@ -366,10 +389,14 @@ for it in range(2000):
     M = ppp.influenceMatrix()
     b = ppp.rhs_freestream(vinf,others = others)
     stren = np.linalg.solve(M,b)
-    others.append(VortexParticule(pl[0],pl[1],gamma = 2.*stren[-1]))
     for i,p in enumerate(ppp):
         p.mu = stren[i]
+    #plt.clf()
+    #plt.plot(ppp.normalVel(vinf,others))
+    #plt.show()
+    print ppp.normalVel(vinf,others)
     update_particle_speeds(others,panels)
     advection_particules(others,dt)
+    others.append(VortexParticule(pl[0],pl[1],gamma = 0.5*stren[-1]))
     showAll(it)
 print '--------'
