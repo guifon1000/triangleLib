@@ -3,7 +3,7 @@ import bidLib as bid
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import subprocess as sub
 
 
 
@@ -271,8 +271,9 @@ class PanelArray(list):
 	        mid = p.middle
 		rhs[i] = -(vinf[0]*p.n[0]+vinf[1]*p.n[1])
 		for o in others:
-		    ve = o.velocities(mid[0],mid[1])
-		    rhs[i]+=-(ve[0]*p.n[0]+ve[1]*p.n[1])
+		    vo = np.dot(o.ipmat,o.velocities(mid[0],mid[1]))
+		    ve = np.dot(p.pmat,vo)
+		    rhs[i]+=-vo[1]
 	    return rhs
 	else : 
             if singul == 'Dipole':
@@ -290,8 +291,8 @@ def update_particle_speeds(part,panels = None):
 	        oi.speed[1] += oj.velocities(oi[0],oi[1],mode = 'global')[1]
         if panels != None :
             for j,pj in enumerate(panels):
-	        oi.speed[0] += 0.*pj.velocities(oi[0],oi[1],mode = 'local')[0] 
-	        oi.speed[1] += 0.*pj.velocities(oi[0],oi[1],mode = 'local')[1]
+	        oi.speed[0] += np.dot(pj.ipmat,pj.velocities(oi[0],oi[1]))[0] 
+	        oi.speed[1] += np.dot(pj.ipmat,pj.velocities(oi[0],oi[1]))[1] 
             oi.speed[0] += vinf[0]
             oi.speed[1] += vinf[1]    
  
@@ -319,7 +320,7 @@ def showAll(it):
         uloc = p.velocities(X,Y,mode='global')
         u += uloc[0]
         v += uloc[1]
-    plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
+    plt.streamplot(X, Y, u,v, density=2, linewidth=1, arrowsize=1, arrowstyle='->')
     plt.xlim(xmin, xmax)
     plt.ylim(ymin,ymax)
     plt.savefig('./imgpf/img_'+str(it)+'.png')
@@ -329,8 +330,8 @@ xmin = -0.5
 xmax =  3.
 
 
-Nx = 150
-Ny = 150
+Nx = 100
+Ny = 100
 
 
 ymin = - (0.5 * (xmax-xmin))
@@ -344,15 +345,15 @@ Py = np.linspace(ymin,ymax,num = Ny)
 X,Y = np.meshgrid(Px,Py)
 vinf = np.array([1.,0.])
 
-geom = 'mano'
+geom = 'xfoil'
 mode = 'unsteady'
 singul = 'Dipole'
 alpha_L = 01.02
-dt = 0.5
-Nl = 2
-L = 0.8
+dt = 0.075
+Nl = 5
+L = 0.4
 
-
+sub.call(['rm','./imgpf/*'])
 
 others=[]
 
@@ -371,18 +372,20 @@ for it in range(Nit):
         panels = []
         for i in range(1,Nl+1):
             p0 = PointElement(float(i-1)*L/float(Nl) ,\
-                -0.5*np.cos(0.*float(it)*dt)*float(i-1)*float(i-1)*L/float(Nl)    )
+                -0.15*np.cos(12.*float(it)*dt)*float(i-1)*float(i-1)*L/float(Nl)    )
             p1 = PointElement(float(i)*L/float(Nl)  ,\
-                -0.5*np.cos(0.*float(it)*dt)*float(i)*float(i)*L/float(Nl)    )
+                -0.15*np.cos(12.*float(it)*dt)*float(i)*float(i)*L/float(Nl)    )
             pan = DipolePanel(p0,p1)
             panels.append(pan)
         ppp = PanelArray(panels)
         pl = [ppp[-1][1][0]+vinf[0]*dt,ppp[-1][1][1]+vinf[1]*dt]
     elif geom =='xfoil' :
-        panels = loadXfoilFile('NACAcamber0012.dat',singul,alpha = 0.,scale = 1.)
+        incid = 0.3*np.cos(5.*float(it)*dt)
+        panels = loadXfoilFile('NACAcamber0012.dat',singul,alpha = incid ,scale = 1.)
         trex = 0.5*(panels[0][0][0]+panels[-1][1][0])
         trey = 0.5*(panels[0][0][1]+panels[-1][1][1])
-        trex+=vinf[0]*dt
+        trex+=vinf[0]*dt*np.cos(incid)
+        trey+=vinf[1]*dt*np.sin(incid)
         pl = [trex,trey] 
 
     ppp = PanelArray(panels)
@@ -397,6 +400,6 @@ for it in range(Nit):
     print ppp.normalVel(vinf,others)
     update_particle_speeds(others,panels)
     advection_particules(others,dt)
-    others.append(VortexParticule(pl[0],pl[1],gamma = 0.5*stren[-1]))
+    others.append(VortexParticule(pl[0],pl[1],gamma = 0.5*(stren[-1]-stren[0])))
     showAll(it)
 print '--------'
