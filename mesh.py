@@ -1,12 +1,15 @@
 import numpy as np
-#import meshio
-#import pygmsh as pg
+import meshio
+import pygmsh as pg
 import matplotlib.pyplot as plt
 import triangleLib as tl
 import sys
 sys.path.append('./profiles/')
 import splineProfileMultiParam as prf
 
+"""
+    mesh lib 
+"""
 
 class Triangulation(list):
     def __init__(self,stl = None):

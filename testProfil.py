@@ -16,8 +16,6 @@ import mesh
 
 
 
-asciiArt.openFile('./asciiArt/minusEtCortex')
 
-pf0 = prf.Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 5)
+pf0 = prf.Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 25)
 mesh.thickWing(pf0,'wing2D')
-asciiArt.openFile('./asciiArt/snoopy')

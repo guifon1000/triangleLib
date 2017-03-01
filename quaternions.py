@@ -77,13 +77,11 @@ def matrix2quaternion(m):
         y=(m[0,2]-m[2,0])*s
         z=(m[1,0]-m[0,1])*s
         w=0.25/s
-        return Quaternion(np.complex(w,x),np.complex(y,z))
+        return Quaternion(w,x,y,z)
          
 
 if __name__=='__main__':
-    a=np.complex(0.5,-0.5)
-    b=np.complex(-0.5,-0.5)
-    q=Quaternion(a,b)
+    q=Quaternion(0.5,-0.5,-0.5,-0.5)
     print q
     print '-------------------------------'
     m=q.quaternion2matrix()

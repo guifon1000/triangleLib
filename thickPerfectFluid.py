@@ -320,18 +320,17 @@ def showAll(it):
         uloc = p.velocities(X,Y,mode='global')
         u += uloc[0]
         v += uloc[1]
-    plt.streamplot(X, Y, u,v, density=2, linewidth=1, arrowsize=1, arrowstyle='->')
+    plt.streamplot(X, Y, u,v, density=4, linewidth=1, arrowsize=1, arrowstyle='->')
     plt.xlim(xmin, xmax)
     plt.ylim(ymin,ymax)
     plt.savefig('./imgpf/img_'+str(it)+'.png')
 
 
-xmin = -0.5
-xmax =  3.
+xmin = -0.25
+xmax =  3.5
 
-
-Nx = 100
-Ny = 100
+Nx = 50
+Ny = 50
 
 
 ymin = - (0.5 * (xmax-xmin))

@@ -1,3 +1,14 @@
+
+
+"""
+    Python FEM
+"""
+
+
+
+
+
+
 import triangleLib as tl
 import numpy as np
 import sympy as sp
@@ -5,8 +16,10 @@ import quaternions as qtr
 import matplotlib.pyplot as plt
 
 
-
 def diagBlock(Bloc,N):
+    """
+        Gives a block defined matrix m with diagonal filled with the block b. What is this 3 ?
+    """
     b = Bloc.shape[0]
     m = np.zeros((b*N,b*N),dtype=float)
     for i in range(N):
@@ -20,6 +33,9 @@ def diagBlock(Bloc,N):
 
 class Node(tl.Point):
     def __init__(self , x, y, z,ddl  = 'fixed',index=None):
+        """
+            Inheritage of Point
+        """
         super(Node,self).__init__(x,y,z)
         self.ddl = ddl
     def setPosition(self, pos ):
@@ -29,6 +45,9 @@ class Node(tl.Point):
 
 class Bar(tl.Segment):
     def __init__(self , pt1 =  None, pt2 = None,stif = 1.0,index=None):
+        """
+            a bar element, with only an axial stiffness
+        """
         super(Bar,self).__init__(pt1,pt2) 
         self.stif = stif
         ux = tl.Vector(pt2[0]-pt1[0],pt2[1]-pt1[1],pt2[2]-pt1[2])
@@ -43,6 +62,7 @@ class Bar(tl.Segment):
         self.matrix = matrix
         # local stiffness
         k=np.zeros((2,2),dtype=float)
+        # are there translations / rotations infos in k ?
         k=[[1,0,0,-1,0,0],\
            [0,0,0,0,0,0],\
            [0,0,0,0,0,0],\
@@ -105,7 +125,7 @@ def createGlobalStiffnessMatrix(nodes,elements):
         n1 = nodes[e[0]]
         n2 = nodes[e[1]]
 	x = np.zeros((3*len(nodes),3*len(nodes)),dtype = float)
-	b=Beam2D(n1,n2,stif = kk)
+	b = Beam2D(n1,n2,stif = kk)
 	y = b.rml
 	x[e[0]*3:e[0]*3+3,e[1]*3:e[1]*3+3]=y[0:3,3:6]
 	x[e[0]*3:e[0]*3+3,e[0]*3:e[0]*3+3]=y[0:3,0:3]
@@ -164,7 +184,77 @@ def plot2D(nodes,elements,positions,col):
         plt.plot(xl,yl,col)
     plt.axis('equal')
 
-if __name__ == '__main__':
+
+if __name__=='__main__' :
+    class orientedPoint(tl.Point):
+        def __init__(self,x,y,z,matrix=None):
+            super(orientedPoint,self).__init__(x,y,z)
+            self.matrix = m
+        def addTo3Dplot(self, ax, style = '-', color = 'k',vectors = False):           # smarter if a method of the 3d object ?
+            ax.scatter(self[0],self[1],self[2])
+            print '---- plotting  ----'
+            a0 = np.array(self)
+            a1 = a0 + np.array(m[0]) 
+            a2 = a0 + np.array(m[1]) 
+            a3 = a0 + np.array(m[2])
+            plt.plot([a0[0],a1[0]],[a0[1],a1[1]],[a0[2],a1[2]],style+color)
+            plt.plot([a0[0],a2[0]],[a0[1],a2[1]],[a0[2],a2[2]],style+color)
+            plt.plot([a0[0],a3[0]],[a0[1],a3[1]],[a0[2],a3[2]],style+color)
+            print a0
+            print a1
+
+
+
+    def separator(st,sep='#'):
+        N = 100
+        s0 = ''
+        for i in range(max(N,len(st)+2)):s0+=sep
+        hs = len(st)/2   #half string
+        hp = N/2   #half place
+        s = ''
+        for i in range(hp-hs-1):
+            s+=sep
+        s+=' '
+        s+=st
+        s+=' '
+        for i in range(hp+hs+1,N-1):
+            s+=sep
+        print len(s)
+        print s0+'\n'+s+'\n'+s0
+
+
+    separator('zobilamouche, '+str(2*np.pi+4),'@')
+    print "create 2 points"
+    m = [[1.,0.,0.],\
+         [0.,1.,0.],\
+         [0.,0.,1.]]
+
+    import quaternions as qtr
+
+    p1 = orientedPoint(1.,0.,2., matrix = m)
+    q1 = qtr.matrix2quaternion(np.array(m))
+    print 'qtr \n'+str(q1)
+    q1 = qtr.Quaternion(1.,0.,0.,0.)
+    m2 = q1.quaternion2matrix()
+
+    print m2
+    p2 = orientedPoint(1.,0.,2., matrix = m2)
+    # 3d graph with matplotlib
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    p1.addTo3Dplot(ax,color = 'r')
+    p2.addTo3Dplot(ax)
+    ax.axis('equal')
+    plt.show()
+    print p1
+
+    p2 = tl.Point(0.,1.,-2.)
+    # the points are oriented such as their associated  
+
+
+
+
+if __name__ == '__mapon__':
     L = 10.
     nodes = []
 
