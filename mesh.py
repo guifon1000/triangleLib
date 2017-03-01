@@ -105,7 +105,7 @@ class surfaceMesh(object):
     def __init__(self,points,Nu,Nv):
         self.Nu = Nu
         self.Nv = Nv
-
+        MSHpts = []
         geom = pg.Geometry()
         for i,p in enumerate(points):
             p = geom.add_point([p.x,p.y,p.z],lcar=0.1)

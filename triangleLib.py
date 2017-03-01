@@ -16,19 +16,17 @@ import os
 
 
 class Point(list):
-    def __init__(self,x=0.,y=0.,z=0.,index=None,name=None):
+    def __init__(self,*args,**kwargs):
         """
             class Point -> array of three floats (the coordinates), only cartesian
             also has the attributes .x , .y and .z --> same as self[0], self[1], self[2]
             can have an index
         """
-        super(Point,self).__init__([x,y,z])
+        super(Point,self).__init__(args)
         #self.append([float(x),float(y),float(z)])
-        self.x=x
-        self.y=y
-        self.z=z
-        self.index=index
-        self.name = name
+        self.x=self[0]
+        self.y=self[1]
+        self.z=self[2]
 
     def setName(self,st):
         self.name = st
@@ -38,42 +36,6 @@ class Point(list):
             set the index of the point
         """
         self.index = i
-
-    def __str__(self):
-        """
-            returns the string associated to the Point
-        """
-        string=''
-        if self.index == None : string += '['+str(self[0])+','+str(self[1])+','+str(self[2])+']'
-        else : string += 'P#'+str(self.index)+str((self.x,self.y,self.z))
-        return string
-
-    def setPos(self,x,y,z):
-        """
-            deprecated
-        """
-        self.x=x
-        self.y=y
-        self.z=z
-        self[0] = x
-        self[1] = y
-        self[2] = z
-
-    def __getitem__(self,i):
-        """
-            I should try if getitem is useful (self inherits a list)
-        """
-        if i == 0:return self.x
-        if i == 1:return self.y
-        if i == 2:return self.z
-
-    def __setitem__(self,i,x):
-        """
-            I should try if setitem is useful (self inherits a list)
-        """
-        if i == 0 : self.x = x
-        if i == 1 : self.y = x
-        if i == 2 : self.z = x
 
     def ran(self):
         """
@@ -117,23 +79,21 @@ class Segment(list):
         self.mid.z=0.5*(self.p1.z+self.p2.z)
 
 
-class Vector:
-    def __init__(self,x=0.,y=0.,z=0.):
+class Vector(list):
+    def __init__(self, *args):
         """
-            class Vector -> no inheritance and it should be an array of floats !!!    
+            class Vector   
         """
-        self.x=x
-        self.y=y
-        self.z=z
-        self.norm0 = math.sqrt(self.x**2+self.y**2+self.z**2)
+        if len(args)==3 :
+            for i in range(3) : self.append(args[i])
+        if len(args)==2 :
+            for i in range(3) : 
+                self.append(args[1][i]-args[0][i])
 
-    def __getitem__(self,i):
-        """
-            this is bad (see Point)
-        """
-        if i == 0:return self.x
-        if i == 1:return self.y
-        if i == 2:return self.z
+        self.x=self[0]
+        self.y=self[1]
+        self.z=self[2]
+        self.norm0 = math.sqrt(self.x**2+self.y**2+self.z**2)
 
     def __add__(self,other):
         """
@@ -152,15 +112,6 @@ class Vector:
             right multiplication by a real
         """
         return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
-
-    def fromPoints(self,A,B):
-        """
-            defines the Vector with 2 points, sets the norm
-        """
-        self.x=B[0]-A[0]
-        self.y=B[1]-A[1]
-        self.z=B[2]-A[2]
-        self.calcNorm0()
 
     def calcNorm0(self):
         """
@@ -193,13 +144,6 @@ class Vector:
         pp=p.addi(self)
         ax.plot([p.x,pp.x],[p.y,pp.y],[p.z,pp.z])
 
-    def __str__(self):
-        """
-            string method
-        """
-        string=''
-        string += str((self.x,self.y,self.z))
-        return string
 
     def projectOnCoordinatesSystem(self,u0,v0,w0):
         """
@@ -240,14 +184,10 @@ class Panel(object):
         cent0=Point(x0,y0,z0)
         self.cg = cent0
         
-        d0=Vector()
-        d0.fromPoints(cent0,p0)
-        d1=Vector()
-        d1.fromPoints(cent0,p1)
-        d2=Vector()
-        d2.fromPoints(cent0,p2)
-        d3=Vector()
-        d3.fromPoints(cent0,p3)
+        d0=Vector(cent0,p0)
+        d1=Vector(cent0,p1)
+        d2=Vector(cent0,p2)
+        d3=Vector(cent0,p3)
         
 
         n0 = cross(d3,d0,norm=False)
@@ -255,8 +195,7 @@ class Panel(object):
         n2 = cross(d1,d2,norm=False)
         n3 = cross(d2,d3,norm=False)
         
-        self.ng=Vector()
-        self.ng.set(0.25*(n0.x+n1.x+n2.x+n3.x),\
+        self.ng=Vector(0.25*(n0.x+n1.x+n2.x+n3.x),\
                     0.25*(n0.y+n1.y+n2.y+n3.y),\
                     0.25*(n0.z+n1.z+n2.z+n3.z))
         self.ng.normalize()
@@ -309,17 +248,15 @@ class Plane:
         self.b=v.y
         self.c=v.z
         self.d=-(v.x*s.mid.x+v.y*s.mid.y+v.z*s.mid.z)
-    def set3Points(self,A,B,C):
-        v0=Vector()
-        v1=Vector()
-        v0.fromPoints(A,B)
-        v1.fromPoints(A,C)
+    def set3Points(self,*args):
+        v0=Vector(args[0],args[1])
+        v1=Vector(Args[0],args[2])
         v2=cross(v0,v1)
         v=v2
-        self.a=v.x
-        self.b=v.y
-        self.c=v.z
-        self.d=-(v.x*A.x+v.y*A.y+v.z*A.z)
+        self.a=v[0]
+        self.b=v[1]
+        self.c=v[2]
+        self.d=-(v[0]*args[0][0]+v[1]*args[0][1]+v[2]*args[0][2])
     def setPointNormal(self,p,normal):
         print 'zob'
     def draw(self,ax):
@@ -339,7 +276,7 @@ def intersect3Planes(p1,p2,p3):
 
 
  
-class Triangle:
+class Triangle(list):
     """    
               
                3
@@ -354,13 +291,14 @@ class Triangle:
           s1
 
     """
-    def __init__(self,p1,p2,p3):
-        self.p1 = p1
-        self.p2 = p2
-        self.p3 = p3
-        self.s1=Segment(p1,p2)
-        self.s2=Segment(p2,p3)
-        self.s3=Segment(p3,p1)
+    def __init__(self,*args):
+        super(Triangle,self).__init__(args)
+        self.s1=Segment(self[0], self[1])
+        self.s2=Segment(self[1], self[2])
+        self.s3=Segment(self[2], self[3])
+        p1 = self[0]
+        p2 = self[1]
+        p3 = self[2]
         self.u=Vector(p2[0]-p1[0],p2[1]-p1[1],p2[2]-p1[2])
         self.v=Vector(p3[0]-p2[0],p3[1]-p2[1],p3[2]-p2[2])
         self.w=Vector(p1[0]-p3[0],p1[1]-p3[1],p1[2]-p3[2])
@@ -476,6 +414,7 @@ if __name__=='__main__':
     points.append(Point(1.,1.,0.))
     points.append(Point(1.,-1.,0.))
     points.append(Point(-1.,-1.,0.))
+    zob = Vector(points[0],points[1])
     links = []
     links.append([0,1])
     links.append([1,2])
