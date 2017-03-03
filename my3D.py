@@ -21,7 +21,7 @@ class My3D(App):
 
     def rotate_cube(self, *dt):
         self.cube.rotation.y += 1
-        self.cube.pos.z-=.01
+        self.cube.pos.z+=0.001
     def build(self):
         layout = FloatLayout()
 
@@ -32,7 +32,7 @@ class My3D(App):
         scene = Scene()
 
         # create default cube for scene
-        cube_geo = my.Msh('sphere.msh',name='zob')
+        cube_geo = my.Msh(file = 'sphere.msh',name='zob')
         cube_mat = Material()
         self.cube = Mesh(geometry = cube_geo, material = cube_mat) # default pos == (0,0,0)
         self.cube.pos.z = 0

@@ -274,7 +274,53 @@ def intersect3Planes(p1,p2,p3):
     return pvor
 
 
+class Triangulation(object):
+    def __init__(self,**kwargs):
+        if (kwargs.has_key('file')) and (kwargs['file'].endswith('.msh') or \
+					kwargs['file'].endswith('.MSH')):
+            f = open('./'+str(kwargs['file']),'r').readlines()
+            _vertices = []
+            app = None
+            nv = None
+            for ist in range(len(f)):
+                l = f[ist]
+                if l.startswith('$Nodes'):
+                    nv = int(f[ist+1])
+                    app = ist
+                    break
+            else:
+ 		print 1/0
+            app +=1
+            print 'there are '+str(nv)+' vertices strating at line '+str(app+1)+' :'+f[app+1]
+            print 'ending at line '+str(app+nv)+' : '+f[app+nv]
+            for i in range(app+1,app+nv+1):
+                l=f[i].split()
+                _vertices.append((float(l[1]), float(l[2]), float(l[3])))
+            self.vertices = _vertices
+            _faces = []
+            for i in range(ist+nv+1,len(f)):
+                lp = f[i].split()
+                if (len(lp) > 3) and (lp[1] == '2') :
+                        _faces.append((int(lp[5]),\
+                                          int(lp[6]),\
+                                          int(lp[7])))
+            self.faces = _faces
+            _normals = []
+            for fa in self.faces :
+                p0 = Point(*self.vertices[fa[0]-1])
+                p1 = Point(*self.vertices[fa[1]-1])
+                p2 = Point(*self.vertices[fa[2]-1])
+                v1 = Vector(float(p1[0])-float(p0[0]),float(p1[1])-float(p0[1]),float(p1[2])-float(p0[2]))
+                v2 = Vector(float(p2[0])-float(p1[0]),float(p2[1])-float(p1[1]),float(p2[2])-float(p1[2]))
+                n = cross(v1,v2,norm=False)
+                _normals.append((n[0],n[1],n[2]))
+            self.normals = _normals
 
+    def set_position(self):
+        for ve in self.vertices:
+            ve[0] += self.posg[0]
+            ve[1] += self.posg[1]
+            ve[2] += self.posg[2]
  
 class Triangle(list):
     """    
@@ -415,6 +461,7 @@ if __name__=='__main__':
     points.append(Point(1.,-1.,0.))
     points.append(Point(-1.,-1.,0.))
     zob = Vector(points[0],points[1])
+    triangulation = Triangulation(file='sphere.msh')
     links = []
     links.append([0,1])
     links.append([1,2])
