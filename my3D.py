@@ -20,8 +20,11 @@ class My3D(App):
         self.renderer.camera.aspect = aspect
 
     def rotate_cube(self, *dt):
-        self.cube.rotation.y += 1
-        self.cube.pos.z+=0.001
+        self.cube.rotation.x += 2
+        self.cube.rotation.y += 2
+        self.cube.rotation.z += 2
+        self.cube.pos.z -= 0.01
+        print self.cube.pos.z
     def build(self):
         layout = FloatLayout()
 
@@ -32,17 +35,20 @@ class My3D(App):
         scene = Scene()
 
         # create default cube for scene
-        cube_geo = my.Msh(file = 'sphere.msh',name='zob')
-        cube_mat = Material()
-        self.cube = Mesh(geometry = cube_geo, material = cube_mat) # default pos == (0,0,0)
-        self.cube.pos.z = 0
+        geo = my.Msh(file = 'wall.msh',scale = 0.0002)
+        mat = Material(
+		color = (0.,0.5,0.),
+                diffuse = (1,0,0),
+                specular = (1,1,0))
+        self.cube = Mesh(geometry = geo, material = mat) # default pos == (0,0,0)
+        self.cube.pos.z = -2.
 
         # create camera for scene
         self.camera = PerspectiveCamera(
                 fov = 75,    #distance from the screen
                 aspect=0,    # "screen" ratio
                 near=1,      # nearest rendered point
-                far=100       # furthest rendered point
+                far=100    # furthest rendered point
         )
         # start rendering the scene and camera
         scene.add(self.cube)
@@ -53,7 +59,7 @@ class My3D(App):
         self.renderer.bind(size=self._adjust_aspect)
 
         layout.add_widget(self.renderer)
-        Clock.schedule_interval(self.rotate_cube, .01)
+        Clock.schedule_interval(self.rotate_cube, 0.05)
         return layout
 
 My3D().run()

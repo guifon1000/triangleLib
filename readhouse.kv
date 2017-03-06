@@ -1,0 +1,40 @@
+#:kivy 1.8
+<ReadHouseApp>:
+    data: {}
+
+
+
+<kPoint>:
+    name: 'no'
+    color: (0,0.5,0)
+    scale: 1
+    size_hint: (0.1,0.1)
+    #pos_hint: {'center_x': root.pos[0], 'center_y': root.pos[1]}
+    pos: root.pos
+    canvas:
+        Color:
+            rgb: self.color
+        Ellipse:
+    Label:
+        center_x: root.pos[0]
+        center_y: root.pos[1]+20
+        text: str(root.name)
+
+
+
+<kLine>:
+    name: 'no'
+    length: -1
+    p0: (0,0)
+    p1: (0,0)
+    canvas:
+        Color:
+            rgb: 1,0.5,1
+        Line:
+            points: self.p0+self.p1
+    Label:
+        center_x: 0.5*(root.p0[0]+root.p1[0])
+        center_y: 0.5*(root.p0[1]+root.p1[1])+10
+        text: str(root.name)
+
+

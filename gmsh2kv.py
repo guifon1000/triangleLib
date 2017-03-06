@@ -9,20 +9,24 @@ class Msh(Geometry):
         tri0 = tl.Triangulation(file = kwargs['file'])
         name = kwargs.pop('name', '')
         super(Msh, self).__init__(name)
-        self.width_segment = kwargs.pop('width_segment', 1)
-        self.height_segment = kwargs.pop('height_segment', 1)
-        self.depth_segment = kwargs.pop('depth_segment', 1)
+        self.width_segment = kwargs.pop('width_segment', 2)
+        self.height_segment = kwargs.pop('height_segment', 2)
+        self.depth_segment = kwargs.pop('depth_segment', 2)
         self._vertices = tri0.vertices
         self._faces = tri0.faces
         self._normals = tri0.normals
-        self._build_msh()
+        self._build_msh(scale = kwargs['scale'])
 
 
-    def _build_msh(self):
+    def _build_msh(self,**kwargs):
         for v in self._vertices:
-            v0 = Vector3(v[0],
-                        v[1],
-                        v[2] )
+            if kwargs.has_key('scale'):
+                scale = float(kwargs['scale'])
+            else:
+                scale = 1.
+            v0 = Vector3(float(v[0]*scale),
+                        float(v[1]*scale),
+                        float(v[2] *scale))
             self.vertices.append((v0[0],v0[1],v0[2]))
         n_idx = 0
         for f in self._faces:

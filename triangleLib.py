@@ -27,6 +27,11 @@ class Point(list):
         self.x=self[0]
         self.y=self[1]
         self.z=self[2]
+        if kwargs.has_key('name'):
+            self.name = kwargs['name']
+        else:
+            self.name = None
+        
 
     def setName(self,st):
         self.name = st
@@ -56,11 +61,18 @@ class Point(list):
         pp.setPos(self.x+e.x,self.y+e.y,self.z+e.z)
         return pp
 
+
+
+
+
+
 def distance(p1,p2):
     """
         the distance between 2 Points
     """
     return math.sqrt((p2.x-p1.x)**2+(p2.y-p1.y)**2+(p2.z-p1.z)**2)
+
+
 
 
 class Segment(list):
@@ -156,6 +168,11 @@ class Vector(list):
         v.set(cx,cy,cz)
         return v
 
+class Polyline(list):
+    def __init__(self,*args):
+        for p in args:
+            self.append([float(p[i]) for i in range(len(p)) ])
+                    
 
 
 class Panel(object):
