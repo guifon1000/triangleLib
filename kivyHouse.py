@@ -14,16 +14,12 @@ from kivy.uix.behaviors import ButtonBehavior
 class kPoint(ButtonBehavior, Widget):
     def __init__(self,**kwargs):
         super(kPoint,self).__init__(**kwargs)
-        if kwargs.has_key('x'):
-            self.pos[0]=kwargs['x']
-        if kwargs.has_key('y'):
-            self.pos[1]=kwargs['y']
-
-        self.pos_hint = {'x': 0.2*kwargs['x'], 'y':  0.2*kwargs['y']}
         self.name = kwargs['name']
         self.selected = False
         self.color = (0.5,0,0)
+        self.lmax = 30
         self.bind(on_press = self.set_selected)
+        
 
 
     def return_position(self,*args):
@@ -41,12 +37,11 @@ class kLabel(Widget):
 
 class kLine(Widget):
     def __init__(self,**kwargs):
-        super(kLine,self).__init__(**kwargs)
-        if kwargs.has_key('p0'):
-            self.p0  = (kwargs['p0'][0] , kwargs['p0'][1])
-        if kwargs.has_key('p1'):
-            self.p1  = (kwargs['p1'][0] , kwargs['p1'][1])
-        self.name = kwargs['name']
+        super(kLine,self).__init__()
+        p0 = kwargs['p0']
+        p1 = kwargs['p1']
+        self.points = p0.pos[0] , p0.pos[1] ,\
+                      p1.pos[0] , p1.pos[1] 
 
 class AddWallButton(Button):
     def __init__(self, **kwargs):
@@ -61,15 +56,13 @@ class ReadHouseApp(App):
         layout = FloatLayout(size=(10,10))
         awb = AddWallButton(size_hint=(0.1,0.1),text='Add Wall')
         awb.bind(on_press = self.add_wall)
-        #layout.add_widget(awb)
+        layout.add_widget(awb)
         self.pts = {}
-        scale = 1
+        scale = 100
         self.newWall = False
         for p in d['points']:
             pp = d['points'][p]
-            self.pts[p] = (kPoint(x = pp[0]*scale,\
-                                            y = pp[1]*scale,\
-                                            name= str(p)))
+            self.pts[p] = kPoint(name= str(p), posi = (pp[0],pp[1]), lmax = 30)
         for p in self.pts:
             layout.add_widget(self.pts[p])
         self.wls = d['internal_walls']
@@ -91,15 +84,14 @@ class ReadHouseApp(App):
                     self.pts[p].color =(0.5,0,0) 
                     self.newWall = False
 
+        for x in self.lay.children:
+            if type(x).__name__ == 'kLine':self.lay.remove_widget(x)
+
         for l in self.wls.keys():
-            pos0 =  self.pts[self.wls[l][0]].pos
-            pos1 =  self.pts[self.wls[l][1]].pos
-            lk = kLine(p0 = pos0, p1 = pos1, name = l)
-            app = True
-            for x in self.lay.children:
-                if (x.name == self.wls[l][0] + self.wls[l][1]) or (x.name == self.wls[l][1] + self.wls[l][0]):
-                    app = False
-            if app : self.lay.add_widget(lk)
+            p0 =  self.pts[self.wls[l][0]]
+            p1 =  self.pts[self.wls[l][1]]
+            lk = kLine(p0 = p0 , p1 = p1)
+            self.lay.add_widget(lk)            
 
     def add_wall(self,*args):
         print " adding a wall between "

@@ -11,6 +11,86 @@ import splineProfileMultiParam as prf
     mesh lib 
 """
 
+def mesh_cylinder2D():
+    geom = pg.Geometry()
+    diam = 1.0
+    domfac = 10. 
+    cyl = geom.add_circle((0,0,0),diam,0.04,num_sections = 3)
+    p0 = geom.add_point((-domfac*diam,domfac*diam,0.),0.1)
+    p1 = geom.add_point((-domfac*diam,-domfac*diam,0.),0.1)
+    p2 = geom.add_point((2.*domfac*diam,-domfac*diam,0.),0.1)
+    p3 = geom.add_point((2.*domfac*diam,domfac*diam,0.),0.1)
+    transfinite_frontiers = 10
+    west = geom.add_line(p0,p1)
+    geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (west,transfinite_frontiers) )
+    south = geom.add_line(p1,p2)
+    geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (south,transfinite_frontiers) )
+    east = geom.add_line(p2,p3)
+    geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (east,transfinite_frontiers) )
+    north = geom.add_line(p3,p0)
+    geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (north,transfinite_frontiers) )
+    lns = []
+    lns.append(west)
+    lns.append(south)
+    lns.append(east)
+    lns.append(north)
+    we = geom.add_physical_line(west)
+    ea = geom.add_physical_line(east)
+    no = geom.add_physical_line(north)
+    so = geom.add_physical_line(south)
+    for l in cyl:
+        lns.append(l)
+        #li = geom.add_line(l)
+        geom.add_physical_line(l)
+    ll = geom.add_line_loop(lns)
+    sf0 = geom.add_plane_surface(ll)
+    #ext = geom.extrude("Surface{"+sf0+"}",translation_axis=(0.,0.,1.))
+    psf = geom.add_physical_surface(sf0)
+    points, cells = pg.generate_mesh(geom)
+
+    epex = 1.
+    ls = cells['line']
+    ge2 = pg.Geometry()
+    for s in ls:
+        seg = [int(st) for st in s]
+        p0 = points[seg[0]]
+        p1 = points[seg[1]]
+        p2 = [p1[0],p1[1],p1[2]+epex]
+        p3 = [p0[0],p0[1],p0[2]+epex]
+        ge2.add_point(p0,0.1)
+        ge2.add_point(p1,0.1)
+        ge2.add_point(p2,0.1)
+        ge2.add_point(p3,0.1)
+
+    f2  = open('test33.geo','w')
+    for l in ge2.get_code():
+        f2.write(l)
+    f2.close()
+    print 1/0
+
+
+    X = np.array([p[0] for p in points])
+    Y = np.array([p[1] for p in points])
+    Z = np.array([p[2] for p in points])
+    tris = cells['triangle']
+    plt.clf()
+    print cells
+    for p in points:plt.scatter(p[0],p[1])
+    for t in tris:
+        p0 = points[t[0]]
+        p1 = points[t[1]]
+        p2 = points[t[2]]
+        plt.plot((p0[0],p1[0]),(p0[1],p1[1]))
+        plt.plot((p1[0],p2[0]),(p1[1],p2[1]))
+        plt.plot((p2[0],p0[0]),(p2[1],p0[1]))
+    plt.axis('equal')
+    plt.show()
+
+    #self.points, self.cells = pg.generate_mesh(geom)
+
+
+
+
 class Triangulation(list):
     def __init__(self,stl = None):
         print "triangulation creation"
