@@ -6,10 +6,167 @@ import triangleLib as tl
 import sys
 sys.path.append('./profiles/')
 import splineProfileMultiParam as prf
-
+import bidLib as l2d
 """
     mesh lib 
 """
+
+def write_geo(name,geom):
+    fg = open(name+'.geo','w')
+    for l in geom.get_code():
+        fg.write(l)
+    fg.close()
+
+
+class Polyline2D(list):    #always closed
+    def __init__(self, *largs,**kwargs):
+        super(Polyline2D,self).__init__(*largs)
+        if kwargs.has_key('z'):
+            self.z=kwargs['z']
+        else:
+            self.z = 0.
+        self.pt3d = []
+        for i in range(len(self)):
+            p = l2d.point(self[i],z=self.z)
+            self.pt3d.append(p)
+
+    def extrude_segments(self,ep):
+        pass
+
+    def box_2d(self,**kwargs):
+        """
+          3  <------------- 2
+          |                 ^
+          v                 |
+          0  -------------> 1
+        """
+
+        geom = pg.Geometry()
+        try:
+            facdom = kwargs['facdom']
+        except:
+            facdom=0.5
+        try:
+            self.trax = (0.,0.,kwargs['thick'])
+        except:
+            self.trax = (0.,0.,0.5)
+            
+        lcar = 2.*self.trax[2]
+
+        lineloop = []
+        pbox = []
+        p0 = l2d.point((-facdom,-facdom),z=self.z)
+        p1 = l2d.point((facdom,-facdom),z=self.z) 
+        p2 = l2d.point((facdom,facdom),z=self.z) 
+        p3 = l2d.point((-facdom,facdom),z=self.z) 
+        p0 = geom.add_point(p0,lcar)
+        p1 = geom.add_point(p1,lcar)
+        p2 = geom.add_point(p2,lcar)
+        p3 = geom.add_point(p3,lcar)
+        pbox.append(p0)
+        pbox.append(p1)
+        pbox.append(p2)
+        pbox.append(p3)
+        south = geom.add_line(p0,p1)
+        east = geom.add_line(p1,p2) 
+        north = geom.add_line(p2,p3) 
+        west = geom.add_line(p3,p0) 
+        lineloop.append(south)
+        lineloop.append(east)
+        lineloop.append(north)
+        lineloop.append(west)
+        ext = geom.extrude(south,translation_axis=self.trax)
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
+        geom.add_physical_surface(ext[1],label='Ymin')
+        ext = geom.extrude(east,translation_axis=self.trax)
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
+        geom.add_physical_surface(ext[1],label='Xmax')
+        ext = geom.extrude(north,translation_axis=self.trax)
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
+        geom.add_physical_surface(ext[1],label='Ymax')
+        ext = geom.extrude(west,translation_axis=self.trax)
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
+        geom.add_physical_surface(ext[1],label='Xmin')
+        print '---------------------------------'
+        opl = []
+        lobj = []
+        for p in self.pt3d:
+            pp = geom.add_point(p,1.)
+            opl.append(pp)
+        for i,p in enumerate(opl[:-1]):
+            li = geom.add_line(opl[i],opl[i+1])
+            lobj.append(li)
+            
+            lineloop.append(li)
+        #close the polyline
+        li = geom.add_line(opl[-1],opl[0])
+        lobj.append(li)
+        lineloop.append(li)
+
+
+        
+        sfobj = []
+        for li in lobj:
+            ext = geom.extrude(li,translation_axis=self.trax)
+            sfobj.append(ext[1])
+        geom.add_physical_surface(sfobj,label='cylinder')
+
+
+        lloop = geom.add_line_loop(lineloop)
+        sf0 = geom.add_plane_surface(lloop)
+
+        geom.add_physical_surface(sf0,label='Zmin')
+
+
+        ll2 = []
+        opl2 = []
+        bpl2 = []
+        for p in pbox:
+            p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
+            p2 = geom.add_point(p2,lcar)
+            bpl2.append(p2)
+
+        for i,p2 in enumerate(bpl2[:-1]):
+            l2 = geom.add_line(p2,bpl2[i+1])
+            ll2.append(l2)
+
+        l2 = geom.add_line(bpl2[-1],bpl2[0])
+        ll2.append(l2)
+
+
+        for p in opl:
+            p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
+            p2 = geom.add_point(p2,lcar)
+            opl2.append(p2)
+
+
+        for i,p2 in enumerate(opl2[:-1]):
+            l2 = geom.add_line(p2,opl2[i+1])
+            ll2.append(l2)
+
+        l2 = geom.add_line(opl2[-1],opl2[0])
+        ll2.append(l2)
+
+        #for p in pbox:
+            #p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
+
+        lloop2 = geom.add_line_loop(ll2)
+        print ll2
+        print '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'
+
+        sf1 = geom.add_plane_surface(lloop2)
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % sf1.id )
+
+        geom.add_physical_surface(sf1,label='Zmax')
+              
+
+
+        write_geo('cylinder_zero',geom)
+        points,cells,pt_data, cell_data, field_data = pg.generate_mesh(geom)
+        meshio.write('volumic0.vtu', points, cells)# ells['quad'])    #{'mu':mu}
+
+
+
 
 class Triangulation(list):
     def __init__(self,stl = None):

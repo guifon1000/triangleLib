@@ -3,6 +3,14 @@ import numpy as np
 
 
 
+def point(*largs,**kwargs):
+    vec = largs[0]
+    if kwargs.has_key('z'):
+        z=kwargs['z']
+    else:
+        z=0.
+    return tl.Point(vec[0],vec[1],z)
+
 def angle(u,v):
     return tl.angle(tl.Vector(u[0],u[1]),tl.Vector(v[0],v[1]))
 
