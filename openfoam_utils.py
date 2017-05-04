@@ -112,7 +112,7 @@ def create_2D_project(pl,**kwargs):
     subprocess.call(['mkdir','0'])
     subprocess.call(['mkdir','constant'])
     subprocess.call(['mkdir','system'])
-    subprocess.call(['/home/fon/gmsh-2.12.0-Linux/bin/gmsh',kwargs['name']+'.geo','-2','-o',kwargs['name']+'.msh','>',kwargs['name']+'.mshlog'])
+    subprocess.call(['/home/fon/gmsh-2.16.0-Linux/bin/gmsh',kwargs['name']+'.geo','-2','-o',kwargs['name']+'.msh','>',kwargs['name']+'.mshlog'])
     print('MSH file successfully written')
     d = readMSH.read_msh_file(kwargs['name'])
     readMSH.write_fms_file(kwargs['name'],**d)
