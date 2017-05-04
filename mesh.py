@@ -4,8 +4,6 @@ import pygmsh as pg
 import matplotlib.pyplot as plt
 import triangleLib as tl
 import sys
-sys.path.append('./profiles/')
-import splineProfileMultiParam as prf
 import bidLib as l2d
 """
     mesh lib 
