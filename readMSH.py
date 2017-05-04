@@ -4,7 +4,7 @@ import json
 
 def read_msh_file(name,**kwargs):
     d = {}
-    lmsh = open(name,'r').readlines()
+    lmsh = open(name+'.msh','r').readlines()
     for i,l in enumerate(lmsh) :
         if '$PhysicalNames' in l:
             d['physical']=[]
@@ -56,7 +56,7 @@ def read_msh_file(name,**kwargs):
                         if k[0]==phys:
                             print 'k ='+str(k)
                             print('triangle belongs to '+k[1])
-                            pt = ((p0-1,p1-1,p2-1),k[0]-1)
+                            pt = ((p2-1,p1-1,p0-1),k[0]-1)
                             d['triangles'].append(str(pt).replace(',',''))
                             break
             i = i+N+2
@@ -88,19 +88,21 @@ def write_fms_file(name,**kwargs):
     f.write(str(len(d['nodes']))+'\n')
     f.write('(\n')
     for p in d['nodes']:
-        f.write(str(p)+'\n')
+        f.write(str(p)+' ')
     f.write(')\n\n')
     f.write('// list of triangles\n')
     f.write(str(len(d['triangles']))+'\n')
     f.write('(\n')
     for p in d['triangles']:
-        f.write(str(p)+'\n')
+        f.write(str(p)+' ')
     f.write(')\n\n')
+
+    for i in range(4):f.write('0()\n')                                                                     
 
         
 
 
 if __name__=='__main__':
-    name = 'cylinder_zero.msh'
+    name = 'cylinder_zero'
     d = read_msh_file(name)
     write_fms_file(name.replace('.msh',''),**d)

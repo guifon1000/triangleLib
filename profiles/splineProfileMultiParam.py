@@ -2,6 +2,8 @@ import numpy as np
 from scipy.special import binom
 from scipy.interpolate import interp1d
 import sys
+sys.path.append('../')
+import mesh
 import matplotlib.pyplot as plt
 
 name="foil"
@@ -34,7 +36,6 @@ class Profile(object):
     an object returning intrados and extrados, from leading edge to trailing edge, and the chord is 1
     """
     def __init__(self , **kwargs ):
-        print "profile class"
         print kwargs.keys()
         if kwargs.has_key('npt'):
             npt=int(kwargs['npt'])
@@ -42,7 +43,6 @@ class Profile(object):
             npt=10
         if kwargs.has_key('typ'):
             if kwargs['typ'] =='fon':
-                print 'profile by fon'
                 if kwargs.has_key('par'):
                     self.x,self.extra,self.intra = fonProfile(kwargs['par'],npt)
             elif kwargs['typ'] == 'naca4d' :
@@ -54,7 +54,19 @@ class Profile(object):
                     print '\n\n\nyou asked me for a naca 4 digits profile without giving me the parameters, \n',\
                             'so go fuck yourself, thanks...\n\n'
 
+    def polyline(self):
 
+        l = []
+        revX = self.x[::-1]
+        revextra = self.extra[::-1]
+        for i in range(len(revX)):
+            p = (revX[i], revextra[i])
+            l.append(p)
+        for i in range(1,len(self.x)):
+            p = (self.x[i], self.intra[i])
+            l.append(p)
+        pl = mesh.Polyline2D(l)
+        return pl
 
 def Naca4DigitsProfile(digits,N):
     corde = 1.0

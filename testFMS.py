@@ -18,7 +18,7 @@ for i in range(N):
     #l.append(p)
 
 
-f = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 5)
+f = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 50)
 
 revX = f.x[::-1]
 revextra = f.extra[::-1]
@@ -28,5 +28,5 @@ for i in range(len(revX)):
 for i in range(1,len(f.x)):
     p = (r*f.x[i], r*f.intra[i])
     l.append(p)
-pl = mesh.Polyline2D(l,z=1.)
+pl = mesh.Polyline2D(l)
 pl.box_2d()

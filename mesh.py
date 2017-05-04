@@ -49,9 +49,13 @@ class Polyline2D(list):    #always closed
         try:
             self.trax = (0.,0.,kwargs['thick'])
         except:
-            self.trax = (0.,0.,0.5)
-            
-        lcar = 2.*self.trax[2]
+            self.trax = (0.,0.,0.1)
+        try:
+            self.name = kwargs['name']
+        except:
+            print('I need a \'name\' parameter !')
+            return 
+        lcar = 1.0#2.*self.trax[2]
 
         lineloop = []
         pbox = []
@@ -108,6 +112,7 @@ class Polyline2D(list):    #always closed
         sfobj = []
         for li in lobj:
             ext = geom.extrude(li,translation_axis=self.trax)
+            #geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
             sfobj.append(ext[1])
         geom.add_physical_surface(sfobj,label='cylinder')
 
@@ -115,7 +120,7 @@ class Polyline2D(list):    #always closed
         lloop = geom.add_line_loop(lineloop)
         sf0 = geom.add_plane_surface(lloop)
 
-        geom.add_physical_surface(sf0,label='Zmin')
+        #geom.add_physical_surface(sf0,label='Zmin')
 
 
         ll2 = []
@@ -151,19 +156,18 @@ class Polyline2D(list):    #always closed
             #p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
 
         lloop2 = geom.add_line_loop(ll2)
-        print ll2
-        print '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'
 
         sf1 = geom.add_plane_surface(lloop2)
         geom._GMSH_CODE.append('Reverse Surface{%s};' % sf1.id )
 
-        geom.add_physical_surface(sf1,label='Zmax')
+        #geom.add_physical_surface(sf1,label='Zmax')
               
 
 
-        write_geo('cylinder_zero',geom)
-        points,cells,pt_data, cell_data, field_data = pg.generate_mesh(geom)
-        meshio.write('volumic0.vtu', points, cells)# ells['quad'])    #{'mu':mu}
+        write_geo(self.name,geom)
+        print('2D Geometry successfully created')
+        #points,cells,pt_data, cell_data, field_data = pg.generate_mesh(geom)
+        #meshio.write('volumic0.vtu', points, cells)# ells['quad'])    #{'mu':mu}
 
 
 
