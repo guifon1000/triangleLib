@@ -1,13 +1,12 @@
 import numpy as np
+import sys
+sys.path.append('../triangleLib/')
 import triangleLib as tl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
-import sys
-sys.path.append('./VortexLatticeMethod/')
-sys.path.append('./asciiArt/')
+sys.path.append('../VortexLatticeMethod/')
 import vlm
-import asciiArt
 import sys
 import pygmsh as pg
 import meshio as meshio
@@ -16,9 +15,9 @@ import mesh
 
 
 
-asciiArt.openFile('./asciiArt/minusEtCortex')
+#asciiArt.openFile('./asciiArt/minusEtCortex')
 
-
+print "zobz"
 P = [tl.Point(-1.0,10.0,0.1),\
         tl.Point(1.0,10.0,-0.3),\
         tl.Point(1.0,-10.0,-0.7),\
@@ -64,4 +63,4 @@ for i,p in enumerate(tab):
     elem.append(p)
 elem.append(fs)
 M.compute(elem)
-asciiArt.openFile('./asciiArt/snoopy')
+#asciiArt.openFile('./asciiArt/snoopy')

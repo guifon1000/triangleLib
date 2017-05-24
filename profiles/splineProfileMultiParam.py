@@ -55,7 +55,6 @@ class Profile(object):
                             'so go fuck yourself, thanks...\n\n'
 
     def polyline(self):
-
         l = []
         revX = self.x[::-1]
         revextra = self.extra[::-1]
@@ -120,7 +119,7 @@ def Naca4DigitsProfile(digits,N):
 
 
 
-def fonProfile(par,N):
+def fonProfile(par,N,**kwargs):
     if len(par)%2==0:
         print 'the number of parameters must be odd, sucker'
     pe = []
@@ -171,7 +170,9 @@ def fonProfile(par,N):
     u,v=Bezier(list(zip(xe,ye)),N).T
     intrados=f(u)-0.5*v
     extrados=f(u)+0.5*v
-    plt.plot(u,f(u))
+    plt.plot(u[::-1],extrados)
+    plt.plot(u,intrados)
+    plt.axis('equal')
     plt.show()
     return u,extrados,intrados 
         
@@ -184,7 +185,6 @@ if __name__=='__main__':
     profils.append(f)
     cols =['k*-','r*-']
     for i,p in enumerate(profils):
-        print p.x
         plt.plot(p.x,p.extra,cols[i])
         plt.plot(p.x,p.intra,cols[i])
     plt.axis('equal')
