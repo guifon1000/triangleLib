@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import triangleLib as tl
 import sys
 import bidLib as l2d
+import json
+
 """
     mesh lib 
 """
@@ -26,6 +28,41 @@ def square(L,x=0.):
         p[0]+=x
     return pol2
 
+#def read_polyline_file(name):
+    #d = json.load(open(name+'.json','r'))
+    #return d
+
+#def create_closed_object(**kwargs):
+
+
+def soluz_box(L,H,D,ld):
+    first_polyline = []
+    first_polyline.append(l2d.point((0.,0.5*float(H)+D),z=0.))
+    first_polyline.append(l2d.point((0.5 * float(L)+ ld , 0.5*float(H)+D ),z=0.))
+    first_polyline.append(l2d.point((0.5 * float(L)+ ld , 0.5*float(H)),z=0.))
+    first_polyline.append(l2d.point((0.5 * float(L) , 0.5*float(H)),z=0.))
+    first_polyline.append(l2d.point((0.5 * float(L) , 0.),z=0.))
+    pol = first_polyline
+    for p in first_polyline[::-1][1:]:
+        pol.append(l2d.point((p[0],-p[1]),z=0.))
+    pol2 = pol
+    for p in pol[::-1][1:len(pol)-1]:
+        pol2.append(l2d.point((-p[0],p[1]),z=0.))
+    return pol2
+
+def rectangle(lx,ly,xc) : #xc is a 2 dim tuple, position of the center
+    first_polyline = []
+    x0 = xc[0]
+    y0 = xc[1]
+    first_polyline.append(l2d.point(  (x0 + 0.5*lx , y0 - 0.5 * ly)  ,  z=0.))
+    first_polyline.append(l2d.point(  (x0 - 0.5*lx , y0 - 0.5 * ly)  ,  z=0.))
+    first_polyline.append(l2d.point(  (x0 - 0.5*lx , y0 + 0.5 * ly)  ,  z=0.))
+    first_polyline.append(l2d.point(  (x0 + 0.5*lx , y0 + 0.5 * ly)  ,  z=0.))
+    return first_polyline
+
+
+
+
 
 
 def motif0(L,l,e,a,thickness,x=0.):
@@ -39,7 +76,7 @@ def motif0(L,l,e,a,thickness,x=0.):
     pol = first_polyline
     for p in first_polyline[::-1][1:]:
         pol.append(l2d.point((p[0],-p[1]),z=0.))
-
+        
     pol2 = pol
     for p in pol[::-1][1:len(pol)-1]:
         pol2.append(l2d.point((-p[0],p[1]),z=0.))
@@ -47,23 +84,52 @@ def motif0(L,l,e,a,thickness,x=0.):
         p[0]+=x
     return pol2
 
+def revolve(pol):
+    geom = pg.Geometry()
+    pts = []
+    lns = []
+    lcar = 0.01
+    for i,p in enumerate(pol.pt3d):
+        pts.append(geom.add_point(p,lcar))
+    for i,p in enumerate(pts[:-1]):
+        lns.append(geom.add_line(p,pts[i+1]))
+        
+    write_geo('revolve',geom)
+    
+
+
+def simple_square(name):
+    objects = []
+    pol2 = rectangle( 1., 1. , (0. , 0.)   )
+    out = Polyline2D(pol2)
+    geom = box(out,objects,name)
+    return geom
+
+
 
 def echanger(name):
-    gmp = []
     thickness = 0.002
     Larg = 3.
     L = 1.
-    l = 0.008
-    e = 0.012
-    a = 0.01
-    No = 150
-    pol2 = motif0(L,l,e,a,thickness)
-    objects = []
-    for i in range(No):
-        pol2 = motif0(L,l,e,a,thickness,x=-0.5*Larg+Larg*float(i)*(1./float(No)))
-        objects.append(Polyline2D(pol2))
+    l = 0.0025
+    e = 0.005
+    a = 0.001
+    
+    thickness = 0.002
+    H = 1.
+    D = 0.025
+    L = 2.
+    ld = D
 
-    pol2 = motif0(1.2*L,3.5,e,a,0.01)
+    No = 200
+    a = (L+(1-No)*thickness)/No
+    objects = []
+    for i in range(No-1):
+        #pol2 = motif0(L,l,e,a,thickness,x=-0.5*Larg+Larg*float(i)*(1./float(No-1)))
+        pol2 = rectangle(thickness, H , (-0.5*L+a+0.5*thickness + float(i) * (a+thickness)   , 0.)  )
+        objects.append(Polyline2D(pol2))
+    #pol2 = motif0(1.05*L,1.05*Larg,0.05,0.00025,0.05)
+    pol2 = soluz_box(L,H,D,ld)
     out = Polyline2D(pol2)
     geom = box(out,objects,name)
     #poly2d.box_2d(name = 'vol0')
@@ -88,6 +154,7 @@ def square_in_box(name):
     #poly2d.box_2d(name = 'vol0')
     #geom.add_line(pt0,pt1)
     return geom
+
 def write_geo(name,geom):
     fg = open(name+'.geo','w')
     for l in geom.get_code():
@@ -96,82 +163,98 @@ def write_geo(name,geom):
 
 
 def box(outBox,inObjects,name):
-    #if len(inObjects)==1:
-        #print 'only one polyline'
-        print str(len(inObjects))+' polylines !'
-        geom = pg.Geometry()
-        boxPoints = []
-        boxLines = []
-        boxPoints2 = []
-        boxLines2 = []
-        lcar = 0.1
-        for pto in outBox.pt3d:
-            boxPoints.append(geom.add_point(pto,lcar))
-            p2 = (pto[0],pto[1],pto[2]+0.1)
-            boxPoints2.append(geom.add_point(p2,lcar))
-        for i in range(len(boxPoints)-1):
-            boxLines.append(geom.add_line(boxPoints[i],boxPoints[i+1]))
-            boxLines2.append(geom.add_line(boxPoints2[i],boxPoints2[i+1]))
-        boxLines.append(geom.add_line(boxPoints[-1],boxPoints[0]))
-        boxLines2.append(geom.add_line(boxPoints2[-1],boxPoints2[0]))
+    print str(len(inObjects))+' polylines !'
+    geom = pg.Geometry()
+    boxPoints = []
+    boxLines = []
+    boxPoints2 = []
+    boxLines2 = []
+    lcar = 100.
+    for pto in outBox.pt3d:
+        boxPoints.append(geom.add_point(pto,lcar))
+        p2 = (pto[0],pto[1],pto[2]+0.1)
+        boxPoints2.append(geom.add_point(p2,lcar))
+    for i in range(len(boxPoints)-1):
+        boxLines.append(geom.add_line(boxPoints[i],boxPoints[i+1]))
+        boxLines2.append(geom.add_line(boxPoints2[i],boxPoints2[i+1]))
+    boxLines.append(geom.add_line(boxPoints[-1],boxPoints[0]))
+    boxLines2.append(geom.add_line(boxPoints2[-1],boxPoints2[0]))
 
-        boxloop = []
-        boxloop2 = []
-        objloop = []
-        objloop2 = []
-        for il,l in enumerate(boxLines):
-            boxloop.append(l)
-            ext = geom.extrude(l,translation_axis=(0.,0.,0.1))
-            geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-            geom.add_physical_surface(ext[1],label='BC.'+str(il))
+    boxloop = []
+    boxloop2 = []
+    objloop = []
+    objloop2 = []
+    bcBox = {}
+    bcObj = {}
+    for il,l in enumerate(boxLines):
+        boxloop.append(l)
+        ext = geom.extrude(l,translation_axis=(0.,0.,0.1))
+        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
+        geom.add_physical_surface(ext[1],label='BC.'+str(il))
+        #bcBox['BC.'+str(il)] = outBox.types[il]
 
-        for il,l in enumerate(boxLines2):
-            boxloop2.append(l)
-        for io,ob in enumerate(inObjects):
-            opl = []
-            opl2 = []
-            lobj = []
+    for il,l in enumerate(boxLines2):
+        boxloop2.append(l)
+    for io,ob in enumerate(inObjects):
+        opl = []
+        opl2 = []
+        lobj = []
 
-            for p in ob.pt3d:
-                pp = geom.add_point(p,1.)
-                opl.append(pp)
-            for i,p in enumerate(opl[:-1]):
-                li = geom.add_line(opl[i],opl[i+1])
-                lobj.append(li)
-                objloop.append(li)
-            #close the polyline
-            li = geom.add_line(opl[-1],opl[0])
+        for p in ob.pt3d:
+            pp = geom.add_point(p,1.)
+            opl.append(pp)
+        for i,p in enumerate(opl[:-1]):
+            li = geom.add_line(opl[i],opl[i+1])
             lobj.append(li)
             objloop.append(li)
+        #close the polyline
+        li = geom.add_line(opl[-1],opl[0])
+        lobj.append(li)
+        objloop.append(li)
 
-            for p in ob.pt3d:
-                pp = geom.add_point((p[0],p[1],p[2]+0.1),1.)
-                opl2.append(pp)
-            for i,p in enumerate(opl2[:-1]):
-                li = geom.add_line(opl2[i],opl2[i+1])
-                objloop2.append(li)
-            #close the polyline
-            li = geom.add_line(opl2[-1],opl2[0])
+        for p in ob.pt3d:
+            pp = geom.add_point((p[0],p[1],p[2]+0.1),1.)
+            opl2.append(pp)
+        for i,p in enumerate(opl2[:-1]):
+            li = geom.add_line(opl2[i],opl2[i+1])
             objloop2.append(li)
+        #close the polyline
+        li = geom.add_line(opl2[-1],opl2[0])
+        objloop2.append(li)
 
+    lengthes = {}
+    for l in objloop:
+        le0 = np.sqrt((l.points[0].x[0]-l.points[1].x[0])**2.+(l.points[0].x[1]-l.points[1].x[1])**2.)
+        if (str(le0) not in lengthes.keys()):
+            lengthes[str(le0)] = []
+            lengthes[str(le0)].append(l)
+        else:
+            lengthes[str(le0)].append(l)
 
-            sfobj = []
-            for li in lobj:
-                ext = geom.extrude(li,translation_axis=(0.,0.,0.1))
-                #geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-                sfobj.append(ext[1])
-            geom.add_physical_surface(sfobj,label='cylinder.'+str(io))
-        all_lines = objloop+boxloop
-        all_lines2 = objloop2+boxloop2
-        lzmin = geom.add_line_loop(all_lines)
-        lzmax = geom.add_line_loop(all_lines2)
-        zmin = geom.add_plane_surface(lzmin)
-        zmax = geom.add_plane_surface(lzmax)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % zmax.id )
-        #Zmin = geom.add_physical_surface(zmin,label='Zmin')
-        #Zmax = geom.add_physical_surface(zmax,label='Zmax')
-        write_geo(name,geom)
-        return geom
+    idl = 0
+    for kl in lengthes.keys():
+        sfOb = []
+        idl += 1
+        lab = 'wall.'+str(idl)
+        idli = 1
+        for li in lengthes[kl]:
+            labi = lab
+            labi += '.'+str(idli)
+            ext = geom.extrude(li,translation_axis=(0.,0.,0.1))
+            sfOb.append(ext[1])
+        geom.add_physical_surface(sfOb,label=lab)
+            #idli += 1 
+    #all_lines = objloop+boxloop
+    #all_lines2 = objloop2+boxloop2
+    #lzmin = geom.add_line_loop(all_lines)
+    #lzmax = geom.add_line_loop(all_lines2)
+    #zmax = geom.add_plane_surface(lzmax)
+    #zmax = geom.add_plane_surface(lzmax)
+    #geom._GMSH_CODE.append('Reverse Surface{%s};' % zmax.id )
+    #Zmin = geom.add_physical_surface(zmin,label='Zmin')
+    #Zmax = geom.add_physical_surface(zmax,label='Zmax')
+    write_geo(name,geom)
+    return geom
 
 
 class Polyline2D(list):    #always closed
@@ -181,6 +264,11 @@ class Polyline2D(list):    #always closed
             self.z=kwargs['z']
         else:
             self.z = 0.
+        if kwargs.has_key('types'):
+            self.types = kwargs['types']
+
+
+
         self.pt3d = []
         for i in range(len(self)):
             p = l2d.point(self[i],z=self.z)
@@ -541,4 +629,6 @@ class volumicMesh(object):
 
 
 if __name__=='__main__':
-    echanger()
+    points = [(0.,1.),(1.,1.),(0.,0.)]
+    pol = Polyline2D(points)
+    revolve(pol)
