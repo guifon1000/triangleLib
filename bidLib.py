@@ -11,7 +11,7 @@ def point(*largs,**kwargs):
         z=kwargs['z']
     else:
         z=0.
-    return tl.Point(vec[0],vec[1],z)
+    return tl.Point([vec[0],vec[1],z])
 
 def angle(u,v):
     return tl.angle(tl.Vector(u[0],u[1]),tl.Vector(v[0],v[1]))

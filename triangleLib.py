@@ -16,64 +16,18 @@ import os
 
 
 class Point(list):
-    def __init__(self,x=0.,y=0.,z=0.,index=None,name=None):
+    def __init__(self,*largs, **kwargs):
         """
             class Point -> array of three floats (the coordinates), only cartesian
             also has the attributes .x , .y and .z --> same as self[0], self[1], self[2]
             can have an index
         """
-        super(Point,self).__init__([x,y,z])
+        super(Point,self).__init__(*largs)
         #self.append([float(x),float(y),float(z)])
-        self.x=x
-        self.y=y
-        self.z=z
-        self.index=index
-        self.name = name
-
-    def setName(self,st):
-        self.name = st
-
-    def setIndex(self,i):
-        """ 
-            set the index of the point
-        """
-        self.index = i
-
-    def __str__(self):
-        """
-            returns the string associated to the Point
-        """
-        string=''
-        if self.index == None : string += '['+str(self[0])+','+str(self[1])+','+str(self[2])+']'
-        else : string += 'P#'+str(self.index)+str((self.x,self.y,self.z))
-        return string
-
-    def setPos(self,x,y,z):
-        """
-            deprecated
-        """
-        self.x=x
-        self.y=y
-        self.z=z
-        self[0] = x
-        self[1] = y
-        self[2] = z
-
-    def __getitem__(self,i):
-        """
-            I should try if getitem is useful (self inherits a list)
-        """
-        if i == 0:return self.x
-        if i == 1:return self.y
-        if i == 2:return self.z
-
-    def __setitem__(self,i,x):
-        """
-            I should try if setitem is useful (self inherits a list)
-        """
-        if i == 0 : self.x = x
-        if i == 1 : self.y = x
-        if i == 2 : self.z = x
+        print 'Point : '+str(largs)
+        self.x=self[0]
+        self.y=self[1]
+        self.z=self[2]
 
     def ran(self):
         """
@@ -88,10 +42,9 @@ class Point(list):
 
     def addi(self,e):
         """
-            returns self + e (e is a Point too)
+            returns self + e (e is a Vector)
         """
-        pp=Point()
-        pp.setPos(self.x+e.x,self.y+e.y,self.z+e.z)
+        pp=Point([self[0]+e[0],self[1]+e[1],self[2]+e[2]])
         return pp
 
 def distance(p1,p2):
@@ -117,64 +70,54 @@ class Segment(list):
         self.mid.z=0.5*(self.p1.z+self.p2.z)
 
 
-class Vector:
-    def __init__(self,x=0.,y=0.,z=0.):
+class Vector(list):
+    def __init__(self, *largs):
         """
             class Vector -> no inheritance and it should be an array of floats !!!    
         """
-        self.x=x
-        self.y=y
-        self.z=z
-        self.norm0 = math.sqrt(self.x**2+self.y**2+self.z**2)
-
-    def __getitem__(self,i):
-        """
-            this is bad (see Point)
-        """
-        if i == 0:return self.x
-        if i == 1:return self.y
-        if i == 2:return self.z
+        super(Vector,self).__init__(*largs)
+        self.norm0 = math.sqrt(self[0]**2. + self[1]**2. + self[2]**2. )
 
     def __add__(self,other):
         """
             Adds an other Vector
         """
-        return Vector(self.x+other.x,self.y+other.y,self.z+other.z)
+        return Vector(self[0]+other[0],self[1]+other[1],self[2]+other[2])
 
     def __mul__(self,alpha):
         """
             multiplies the vector by a real
         """
-        return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
+        return Vector(self[0]*alpha,self[1]*alpha,self[2]*alpha)
 
     def __rmul__(self,alpha):
         """
             right multiplication by a real
         """
-        return Vector(self.x*alpha,self.y*alpha,self.z*alpha)
+        return Vector(self[0]*alpha,self[1]*alpha,self[2]*alpha)
 
     def fromPoints(self,A,B):
         """
             defines the Vector with 2 points, sets the norm
         """
-        self.x=B[0]-A[0]
-        self.y=B[1]-A[1]
-        self.z=B[2]-A[2]
+        self[0]=B[0]-A[0]
+        self[1]=B[1]-A[1]
+        self[2]=B[2]-A[2]
         self.calcNorm0()
 
     def calcNorm0(self):
         """
             computes the norm of the vector
         """
-        self.norm0=math.sqrt(self.x**2+self.y**2+self.z**2)
+        self.norm0=math.sqrt(self[0]**2+self[1]**2+self[2]**2)
 
     def set(self,x,y,z):
         """
             sets the coordinates of the Vector
         """
-        self.x=x
-        self.y=y
-        self.z=z
+        self[0]=x
+        self[1]=y
+        self[2]=z
         self.calcNorm0()
 
     def normalize(self):
@@ -182,34 +125,26 @@ class Vector:
             normalize the vector
         """
         self.calcNorm0()
-        self.x=self.x/self.norm0
-        self.y=self.y/self.norm0
-        self.z=self.z/self.norm0
+        self[0]=self[0]/self.norm0
+        self[1]=self[1]/self.norm0
+        self[2]=self[2]/self.norm0
+        self.calcNorm0()
 
     def draw(self,ax,p):
         """
             adds the point to a 3d existing matplotlib view, ax
         """
-        pp=p.addi(self)
-        ax.plot([p.x,pp.x],[p.y,pp.y],[p.z,pp.z])
-
-    def __str__(self):
-        """
-            string method
-        """
-        string=''
-        string += str((self.x,self.y,self.z))
-        return string
+        pp = p.addi(Point([self[0], self[1], self[2]]))
+        ax.plot([p[0],pp[0]],[p[1],pp[1]],[p[2],pp[2]],c='k')
 
     def projectOnCoordinatesSystem(self,u0,v0,w0):
         """
             returns the Vector given in the 3 Vectors u0,v0,w0 basis
         """
-        cx=u0.x*self.x+u0.y*self.y+u0.z*self.z
-        cy=v0.x*self.x+v0.y*self.y+v0.z*self.z
-        cz=w0.x*self.x+w0.y*self.y+w0.z*self.z
-        v=Vector()
-        v.set(cx,cy,cz)
+        cx=u0[0]*self[0]+u0[1]*self[1]+u0[2]*self[2]
+        cy=v0[0]*self[0]+v0[1]*self[1]+v0[2]*self[2]
+        cz=w0[0]*self[0]+w0[1]*self[1]+w0[2]*self[2]
+        v=Vector((cx,cy,cz))
         return v
 
 
@@ -263,10 +198,10 @@ class Panel(object):
 
 def cross(u,v, norm=True):
     pv=[]
-    pv.append(u.y*v.z-u.z*v.y)
-    pv.append(u.z*v.x-u.x*v.z)
-    pv.append(u.x*v.y-u.y*v.x)
-    vp=Vector(pv[0],pv[1],pv[2])
+    pv.append(u[1]*v[2]-u[2]*v[1])
+    pv.append(u[2]*v[0]-u[0]*v[2])
+    pv.append(u[0]*v[1]-u[1]*v[0])
+    vp=Vector(pv)
     if norm:vp.normalize()
     return vp
 
@@ -282,7 +217,10 @@ def angle(u,v):
     else :
         return -angle
 
-
+def unit_vector_like(vec):
+    v = vec
+    v.normalize()
+    return v
 
 class Plane:
     """

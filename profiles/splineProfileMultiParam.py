@@ -36,7 +36,6 @@ class Profile(object):
     an object returning intrados and extrados, from leading edge to trailing edge, and the chord is 1
     """
     def __init__(self , **kwargs ):
-        print kwargs.keys()
         if kwargs.has_key('npt'):
             npt=int(kwargs['npt'])
         else:
@@ -52,7 +51,7 @@ class Profile(object):
                     self.x,self.extra,self.intra = Naca4DigitsProfile(digits,npt)
                 else : 
                     print '\n\n\nyou asked me for a naca 4 digits profile without giving me the parameters, \n',\
-                            'so go fuck yourself, thanks...\n\n'
+                            '...\n\n'
 
     def polyline(self):
         l = []
@@ -64,7 +63,7 @@ class Profile(object):
         for i in range(1,len(self.x)):
             p = (self.x[i], self.intra[i])
             l.append(p)
-        pl = mesh.Polyline2D(l)
+        pl = mesh.Polyline2D(l,closed = True)
         return pl
 
 def Naca4DigitsProfile(digits,N):
@@ -165,15 +164,15 @@ def fonProfile(par,N,**kwargs):
     #f._call_spline(
     x2see = f.x
     y2see = f.y
-    plt.clf()
-    plt.plot(x2see,y2see)
+    #plt.clf()
+    #plt.plot(x2see,y2see)
     u,v=Bezier(list(zip(xe,ye)),N).T
     intrados=f(u)-0.5*v
     extrados=f(u)+0.5*v
-    plt.plot(u[::-1],extrados)
-    plt.plot(u,intrados)
-    plt.axis('equal')
-    plt.show()
+    #plt.plot(u[::-1],extrados)
+    #plt.plot(u,intrados)
+    #plt.axis('equal')
+    #plt.show()
     return u,extrados,intrados 
         
         

@@ -264,18 +264,54 @@ class Polyline2D(list):    #always closed
             self.z=kwargs['z']
         else:
             self.z = 0.
-        if kwargs.has_key('types'):
-            self.types = kwargs['types']
-
-
-
+        if kwargs.has_key('closed'):
+            self.check_closed = kwargs['closed']
+        else : 
+            self.check_closed = False
+        if self.check_closed : 
+            p = self[0]
+            self.append(p)
         self.pt3d = []
         for i in range(len(self)):
             p = l2d.point(self[i],z=self.z)
-            self.pt3d.append( (p[0] , p[1], self.z))
-        
+            self.pt3d.append( tl.Point([p[0] , p[1], self.z]))
+    
+    def to_frame(self, f, **kwargs):
+        try:
+            fac_scale = kwargs['scale']
+        except:
+            fac_scale = 1.
+        for i in range(len(self.pt3d)) :
+            print self.pt3d[i]
+            self.pt3d[i][0] *= fac_scale * (f[2][0] + f[3][0] )
+            self.pt3d[i][0] += f[0][0] 
+            self.pt3d[i][1] *= fac_scale * (f[2][1] + f[3][1] )
+            self.pt3d[i][1] += f[0][1] 
+            self.pt3d[i][2] *= fac_scale * (f[2][2] + f[3][2] )
+            self.pt3d[i][2] += f[0][2] 
 
 
+
+    def add_to_geom(self, geom):
+        pts = []
+        lns = []
+        pol = self.pt3d
+        if self.check_closed:
+            for i,p in enumerate(pol[:-1]):
+                p = geom.add_point(p,0.1)
+                pts.append(p)
+            for i in range(len(pts)-1):
+                l = geom.add_line(pts[i],pts[i+1])
+                lns.append(l)
+
+    def translate(self,vec):
+        for i in range(len(self)) :
+            self.pt3d[i] = [self.pt3d[i][j]+vec[j] for j in range(3)]
+
+    def center_of_gravity(self):
+        s = np.array(self.pt3d)
+        self.cg = np.mean(s, axis = 0)
+            
     def write_xfoil(self, **kwargs):
         print('=============  write XFOIL file==============')
         name = kwargs['name']
@@ -292,122 +328,6 @@ class Polyline2D(list):    #always closed
             
     def extrude_segments(self,ep):
         pass
-
-    def box_2d(self,**kwargs):
-        """
-          3  <------------- 2
-          |                 ^
-          v                 |
-          0  -------------> 1
-
-          creates a geometry of the boxed geometry, with a thickness
-        """
-
-        geom = pg.Geometry()
-        try:
-            facdom = kwargs['facdom']
-        except:
-            facdom=0.5
-        try:
-            self.trax = (0.,0.,kwargs['thick'])
-        except:
-            self.trax = (0.,0.,0.1)
-        try:
-            self.name = kwargs['name']
-        except:
-            print('I need a \'name\' parameter !')
-            return 
-        lcar = 1.0#2.*self.trax[2]
-
-        lineloop = []
-        pbox = []
-        # 4 corner box
-        p0 = l2d.point((-facdom,-facdom),z=self.z)
-        p1 = l2d.point((facdom,-facdom),z=self.z) 
-        p2 = l2d.point((facdom,facdom),z=self.z) 
-        p3 = l2d.point((-facdom,facdom),z=self.z) 
-        p0 = geom.add_point(p0,lcar)
-        p1 = geom.add_point(p1,lcar)
-        p2 = geom.add_point(p2,lcar)
-        p3 = geom.add_point(p3,lcar)
-        pbox.append(p0)
-        pbox.append(p1)
-        pbox.append(p2)
-        pbox.append(p3)
-        south = geom.add_line(p0,p1)
-        east = geom.add_line(p1,p2) 
-        north = geom.add_line(p2,p3) 
-        west = geom.add_line(p3,p0) 
-        lineloop.append(south)
-        lineloop.append(east)
-        lineloop.append(north)
-        lineloop.append(west)
-        ext = geom.extrude(south,translation_axis=self.trax)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-        geom.add_physical_surface(ext[1],label='Ymin')
-        ext = geom.extrude(east,translation_axis=self.trax)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-        geom.add_physical_surface(ext[1],label='Xmax')
-        ext = geom.extrude(north,translation_axis=self.trax)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-        geom.add_physical_surface(ext[1],label='Ymax')
-        ext = geom.extrude(west,translation_axis=self.trax)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-        geom.add_physical_surface(ext[1],label='Xmin')
-        # N corner box
-        opl = []
-        lobj = []
-        for p in self.pt3d:
-            pp = geom.add_point(p,1.)
-            opl.append(pp)
-        for i,p in enumerate(opl[:-1]):
-            li = geom.add_line(opl[i],opl[i+1])
-            lobj.append(li)
-            lineloop.append(li)
-        #close the polyline
-        li = geom.add_line(opl[-1],opl[0])
-        lobj.append(li)
-        lineloop.append(li)
-        sfobj = []
-        for li in lobj:
-            ext = geom.extrude(li,translation_axis=self.trax)
-            #geom._GMSH_CODE.append('Reverse Surface{%s};' % ext[1].id )
-            sfobj.append(ext[1])
-        geom.add_physical_surface(sfobj,label='cylinder')
-        lloop = geom.add_line_loop(lineloop)
-        sf0 = geom.add_plane_surface(lloop)
-        #geom.add_physical_surface(sf0,label='Zmin')
-        ll2 = []
-        opl2 = []
-        bpl2 = []
-        for p in pbox:
-            p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
-            p2 = geom.add_point(p2,lcar)
-            bpl2.append(p2)
-        for i,p2 in enumerate(bpl2[:-1]):
-            l2 = geom.add_line(p2,bpl2[i+1])
-            ll2.append(l2)
-        l2 = geom.add_line(bpl2[-1],bpl2[0])
-        ll2.append(l2)
-        for p in opl:
-            p2 = l2d.point((p.x[0],p.x[1]),z=self.z+self.trax[2])
-            p2 = geom.add_point(p2,lcar)
-            opl2.append(p2)
-        for i,p2 in enumerate(opl2[:-1]):
-            l2 = geom.add_line(p2,opl2[i+1])
-            ll2.append(l2)
-        l2 = geom.add_line(opl2[-1],opl2[0])
-        ll2.append(l2)
-        lloop2 = geom.add_line_loop(ll2)
-        sf1 = geom.add_plane_surface(lloop2)
-        geom._GMSH_CODE.append('Reverse Surface{%s};' % sf1.id )
-
-        write_geo(self.name,geom)
-        print('2D Geometry successfully created')
-        points,cells,pt_data, cell_data, field_data = pg.generate_mesh(geom)
-        meshio.write('volumic0.vtu', points, cells)# ells['quad'])    #{'mu':mu}
-
-
 
 
 class Triangulation(list):
@@ -431,34 +351,29 @@ class Triangulation(list):
 
 
 
-class thickWing(object):
-    def __init__(self,pf,name):
-        geom = pg.Geometry()
-        ptsExtra = []
-        lns = []
-        for (i,x) in enumerate(pf.x):
-            p = geom.add_point((x,pf.extra[i],1.),0.)
-            ptsExtra.append(p)
-        for i in range(len(ptsExtra)-1):
-            l = geom.add_line(ptsExtra[i],ptsExtra[i+1])
-            lns.append(l)
-        ptsIntra = []
-        for (i,x) in enumerate(pf.x):
-            p = geom.add_point((x,pf.intra[i],1.),0.)
-            ptsIntra.append(p)
-        for i in range(len(ptsIntra)-1):
-            l = geom.add_line(ptsIntra[i],ptsIntra[i+1])
-            lns.append(l)
-        lnTe = geom.add_line(ptsExtra[-1],ptsIntra[-1])
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (lnTe,2) )
-        lns.append(lnTe)
-        lloop = geom.add_line_loop(lns)
-        sfStart = geom.add_ruled_surface(lloop) 
-        geom.add_physical_surface(sfStart) 
-                #geom._GMSH_CODE.append('Recombine Surface {%s};' % sfIntra)
-        fg = open(name+'.geo','w')
-        for l in geom.get_code():
-            fg.write(l)
+
+
+
+
+def thick_wing(pf,name):
+    geom = pg.Geometry()
+    pts = []
+    lns = []
+    pol = pf.polyline().pt3d
+    for (i,p) in enumerate(pol[:-1]):
+        p = geom.add_point(p,0.1)
+        pts.append(p)
+    for i in range(len(pts)-1):
+        l = geom.add_line(pts[i],pts[i+1])
+        lns.append(l)
+    l = geom.add_line(pts[-1],pts[0])
+    lns.append(l)
+    lloop = geom.add_line_loop(lns)
+    sfStart = geom.add_plane_surface(lloop)
+    geom.add_physical_surface(sfStart) 
+    fg = open(name+'.geo','w')
+    for l in geom.get_code():
+        fg.write(l)
 
 
 def loadXfoilFile(name):
@@ -629,6 +544,27 @@ class volumicMesh(object):
 
 
 if __name__=='__main__':
-    points = [(0.,1.),(1.,1.),(0.,0.)]
-    pol = Polyline2D(points)
-    revolve(pol)
+    sys.path.append('./profiles')
+    from splineProfileMultiParam import  Profile
+    from frames import Frame
+    from scipy import interpolate
+    from mpl_toolkits.mplot3d import Axes3D
+    geom = pg.Geometry()
+    
+
+    x = [0.0, 0.1, 0.4, 0.6, 0.9]
+    y = [0.0, 0.05, 0.09, 0.11, 0.4]
+    z = [0.0, 0.9, 1.8, 5.2, 7.9]
+
+    tck, u = interpolate.splprep([x,y,z], s=2)
+    #x_knots, y_knots, z_knots = interpolate.splev(tck[0], tck)
+    t = np.linspace(0, 1, 100)
+    fig2 = plt.figure(2)
+    ax3d = fig2.add_subplot(111, projection='3d')
+    for s in t:
+        f = Frame(s, tck, type = 'Xnat')
+        pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 30)
+        pol = pf.polyline()
+        pol.to_frame(f, scale = 0.5)
+        pol.add_to_geom(geom)
+    write_geo('wingZero',geom)
