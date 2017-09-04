@@ -131,7 +131,7 @@ def echanger(name):
     #pol2 = motif0(1.05*L,1.05*Larg,0.05,0.00025,0.05)
     pol2 = soluz_box(L,H,D,ld)
     out = Polyline2D(pol2)
-    geom = box(out,objects,name)
+    geom = box2D(out,objects,name)
     #poly2d.box_2d(name = 'vol0')
     #geom.add_line(pt0,pt1)
     return geom
@@ -150,7 +150,7 @@ def square_in_box(name):
 
     pol2 = square(L)
     out = Polyline2D(pol2)
-    geom = box(out,objects,name)
+    geom = box2D(out,objects,name)
     #poly2d.box_2d(name = 'vol0')
     #geom.add_line(pt0,pt1)
     return geom
@@ -162,7 +162,18 @@ def write_geo(name,geom):
     fg.close()
 
 
-def box(outBox,inObjects,name):
+
+
+
+
+def box3D(Lx,Ly,Lz,inObjects,**kwargs):
+    print('----------------- 3D box construction ------------------------')
+     
+
+
+
+
+def box2D(outBox,inObjects,name):
     print str(len(inObjects))+' polylines !'
     geom = pg.Geometry()
     boxPoints = []
@@ -257,6 +268,9 @@ def box(outBox,inObjects,name):
     return geom
 
 
+
+
+
 class Polyline2D(list):    #always closed
     def __init__(self, *largs,**kwargs):
         super(Polyline2D,self).__init__(*largs)
@@ -282,7 +296,6 @@ class Polyline2D(list):    #always closed
         except:
             fac_scale = 1.
         for i in range(len(self.pt3d)) :
-            print self.pt3d[i]
             self.pt3d[i][0] *= fac_scale * (f[2][0] + f[3][0] )
             self.pt3d[i][0] += f[0][0] 
             self.pt3d[i][1] *= fac_scale * (f[2][1] + f[3][1] )
@@ -303,6 +316,10 @@ class Polyline2D(list):    #always closed
             for i in range(len(pts)-1):
                 l = geom.add_line(pts[i],pts[i+1])
                 lns.append(l)
+           
+            l = geom.add_line(pts[-1], pts[0])
+            lns.append(l)
+        return lns
 
     def translate(self,vec):
         for i in range(len(self)) :
@@ -331,25 +348,9 @@ class Polyline2D(list):    #always closed
 
 
 class Triangulation(list):
-    def __init__(self,stl = None):
+    def __init__(self, points, triangles, **kwargs):
+
         print "triangulation creation"
-        if stl is not None : 
-            geom = pg.Geometry()
-            geom._GMSH_CODE.append('Merge \''+stl+'\';\n')
-            self.points, self.cells = pg.generate_mesh(geom)
-
-
-        fg = open('test0.geo','w')
-        for l in geom.get_code():
-            fg.write(l)
-        self.points, self.cells = pg.generate_mesh(geom)
-
-        self.X = np.array([p[0] for p in self.points])
-        self.Y = np.array([p[1] for p in self.points])
-        self.Z = np.array([p[2] for p in self.points])
-        self.tris = self.cells['triangle']
-
-
 
 
 
@@ -543,7 +544,7 @@ class volumicMesh(object):
 
 
 
-if __name__=='__main__':
+if __name__=='__main0__':
     sys.path.append('./profiles')
     from splineProfileMultiParam import  Profile
     from frames import Frame
@@ -551,20 +552,88 @@ if __name__=='__main__':
     from mpl_toolkits.mplot3d import Axes3D
     geom = pg.Geometry()
     
-
+    
     x = [0.0, 0.1, 0.4, 0.6, 0.9]
     y = [0.0, 0.05, 0.09, 0.11, 0.4]
-    z = [0.0, 0.9, 1.8, 5.2, 7.9]
+    z = [0.0, 0.3, 0.8, 1.2, 2.9]
 
     tck, u = interpolate.splprep([x,y,z], s=2)
-    #x_knots, y_knots, z_knots = interpolate.splev(tck[0], tck)
-    t = np.linspace(0, 1, 100)
-    fig2 = plt.figure(2)
-    ax3d = fig2.add_subplot(111, projection='3d')
-    for s in t:
-        f = Frame(s, tck, type = 'Xnat')
-        pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.04,0.029],npt = 30)
+    name = 'wingZero'
+    Nslices = 100
+    npt = 63
+    t = np.linspace(0., 1., Nslices)
+    pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt)
+    fi = Frame(t[0], tck, type = 'Xnat')
+    pol = pf.polyline()
+    pol.to_frame(fi, scale = 0.5)
+    li = pol.add_to_geom(geom)
+    lloop = []
+    for l in li : lloop.append(l)
+    ll = geom.add_line_loop(lloop)
+    li0 = li
+    sf = geom.add_plane_surface(ll)
+    phys = []
+    geom.add_physical_surface(sf)
+    phys.append(sf)
+    for i in range(Nslices-1):
+        si = t[i]
+        sip1 = t[i+1]
+        pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt)
+        fip1 = Frame(sip1, tck, type = 'Xnat')
         pol = pf.polyline()
-        pol.to_frame(f, scale = 0.5)
-        pol.add_to_geom(geom)
-    write_geo('wingZero',geom)
+        pol.to_frame(fip1, scale = 0.5*np.cos(sip1*0.4*np.pi))
+        lip1 = pol.add_to_geom(geom)
+        for j in range(len(li)):
+            lij = li0[j]
+            lip1j = lip1[j]
+            lti = geom.add_line(lij.points[0], lip1j.points[0])
+            ltip1 = geom.add_line(lij.points[1], lip1j.points[1])
+            lloop = geom.add_line_loop([lti, lip1j, -ltip1, -lij])
+            sf = geom.add_ruled_surface(lloop)
+            phys.append(sf)
+
+        li0 = lip1
+    lloop = []
+    for l in lip1 : lloop.append(-l)
+    ll = geom.add_line_loop(lloop)
+    li0 = li
+    sf = geom.add_plane_surface(ll)
+    phys.append(sf)
+    physS = geom.add_surface_loop(phys)
+    geom.add_physical_surface(phys, label = 'profile')
+    write_geo(name, geom)
+    import subprocess
+    exe_gmsh = '/home/fon/gmsh-2.16.0-Linux/bin/gmsh'
+    subprocess.call([exe_gmsh,name+'.geo','-2','-o',name+'.msh','>',name+'.mshlog'])
+    X, cells, pt_data, cell_data, field_data = meshio.read(name+'.msh')
+    box3D(10.,10., 10., [0])
+    print X
+    print cells['triangle']
+    import readMSH as rmsh
+    d = rmsh.read_msh_file(name)
+    rmsh.write_fms_file(name,**d)
+
+
+if __name__ == '__main__':
+    from random import random
+    Npoints = 2
+    scale = 10.
+    name = 'zob'
+    geom = pg.Geometry()
+    points = []
+    lines = []
+    thicknesses = [0.1*scale*np.cos(float(i)) for i in range(Npoints) ]
+
+    p0 = tl.Point((0., 0., 0. ))
+    p = geom.add_point(p0, scale)
+    points.append(p)
+    for i in range(Npoints):
+        x = scale * (random()-0.5)
+        y = scale * (random()-0.5)
+        z = scale * (random()-0.5)
+        p0 = tl.Point((x,y,z))
+        p = geom.add_point(p0, scale)
+        l = geom.add_line(points[0], p)
+        points.append(p)
+        lines.append(l)
+    write_geo(name, geom)

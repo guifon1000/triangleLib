@@ -24,7 +24,6 @@ class Point(list):
         """
         super(Point,self).__init__(*largs)
         #self.append([float(x),float(y),float(z)])
-        print 'Point : '+str(largs)
         self.x=self[0]
         self.y=self[1]
         self.z=self[2]

@@ -5,7 +5,7 @@ import numpy as np
 
 
 
-def point(*largs,**kwargs):
+def point(*largs, **kwargs):
     vec = largs[0]
     if kwargs.has_key('z'):
         z=kwargs['z']
@@ -42,5 +42,6 @@ def normal(p):
     v = tl.Vector(0.,0.,1.)
     pv = tl.cross(v,u) 
     return [pv[0],pv[1]]
+
 
 

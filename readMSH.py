@@ -61,6 +61,14 @@ def read_msh_file(name,**kwargs):
     return d
 
 
+def triangulation_to_fms(name, triangulation, **kwargs):
+    print 'triangulation 2 fms file !'
+    print triangulation
+
+
+
+
+
 def write_fms_file(name,**kwargs):
     f = open(name+('.fms'),'w')
     d=kwargs
