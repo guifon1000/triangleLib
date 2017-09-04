@@ -60,10 +60,20 @@ def rectangle(lx,ly,xc) : #xc is a 2 dim tuple, position of the center
     first_polyline.append(l2d.point(  (x0 + 0.5*lx , y0 + 0.5 * ly)  ,  z=0.))
     return first_polyline
 
-
-
-
-
+def circle(rad,xc,n) : #xc is a 2 dim tuple, position of the center
+    first_polyline = []
+    x0 = xc[0]
+    y0 = xc[1]
+    for i in range(n):
+        teta = i*2.*np.pi/n
+        first_polyline.append(l2d.point(  (x0 + rad * np.cos(teta) , y0 + rad * np.sin(teta) )  ,  z=0.))
+    return first_polyline
+        
+def circle_in_box(name):
+    out = Polyline2D(rectangle(25.,5.,(5.,0.)))
+    objects = [Polyline2D(circle(0.1,(0.,0.),200))]
+    geom = box(out,objects,name)
+    return geom
 
 def motif0(L,l,e,a,thickness,x=0.):
     first_polyline = []
