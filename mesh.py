@@ -121,7 +121,7 @@ def motif0(L,l,e,a,thickness,x=0.):
     return pol2
 
 def revolve(pol):
-    geom = pg.Geometry()
+    geom = pg.built_in.Geometry()
     pts = []
     lns = []
     lcar = 0.01
@@ -211,7 +211,7 @@ def box3D(Lx,Ly,Lz,inObjects,**kwargs):
 
 def box2D(outBox,inObjects,name):
     print str(len(inObjects))+' polylines !'
-    geom = pg.Geometry()
+    geom = pg.built_in.Geometry()
     boxPoints = []
     boxLines = []
     boxPoints2 = []
@@ -518,7 +518,7 @@ class Triangulation(dict):
 
 
 def thick_wing(pf,name):
-    geom = pg.Geometry()
+    geom = pg.built_in.Geometry()
     pts = []
     lns = []
     pol = pf.polyline().pt3d
@@ -569,7 +569,7 @@ def wing():
 
 
     # creation of the geometry pygmsh
-    geom = pg.Geometry()
+    geom = pg.built_in.Geometry()
     
     # control points of the generatrix
     x = [0.0, 0.1, 0.4, 0.6, 0.9]
@@ -640,7 +640,7 @@ if __name__ == '__main__':
     Npoints = 5
     scale = 10.
     name = 'zob'
-    geom = pg.Geometry()
+    geom = pg.built_in.Geometry()
     points = []
     lines = []
     thicknesses = [0.1*scale*np.cos(float(i)) for i in range(Npoints) ]
