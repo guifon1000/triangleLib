@@ -201,19 +201,22 @@ def cross(u,v, norm=True):
     pv.append(u[2]*v[0]-u[0]*v[2])
     pv.append(u[0]*v[1]-u[1]*v[0])
     vp=Vector(pv)
+    #print vp
     if norm:vp.normalize()
     return vp
 
 def dot(u,v):
-    return u.x*v.x+u.y*v.y+u.z*v.z
+    return u[0]*v[0]+u[1]*v[1]+u[2]*v[2]
 
 def angle(u,v):
-    
     angle = np.arctan2(cross(u,v,norm=False).norm0,dot(u,v))
+    #
     if angle == 0.:return 0.
-    if dot(cross(u,v),Vector(0.,0.,1.0))>=0.:
+    # warning : only in 2D case
+    if dot(cross(u,v), Vector((0.,0.,1.0)))>0.:
         return angle
     else :
+    #    print "gne"
         return -angle
 
 def unit_vector_like(vec):
@@ -292,28 +295,22 @@ class Triangle:
 
     """
     def __init__(self,p1,p2,p3):
-        self.p1 = p1
-        self.p2 = p2
-        self.p3 = p3
-        self.s1=Segment(p1,p2)
-        self.s2=Segment(p2,p3)
-        self.s3=Segment(p3,p1)
-        self.u=Vector(p2[0]-p1[0],p2[1]-p1[1],p2[2]-p1[2])
-        self.v=Vector(p3[0]-p2[0],p3[1]-p2[1],p3[2]-p2[2])
-        self.w=Vector(p1[0]-p3[0],p1[1]-p3[1],p1[2]-p3[2])
-        
-        #self.s1.setPoints(self.p1,self.p2)
-        #self.s2.setPoints(self.p2,self.p3)
-        #self.s3.setPoints(self.p3,self.p1)
+        self.p0 = p1
+        self.p1 = p2
+        self.p2 = p3
 
-    def setPoints(self,p1,p2,p3):
-        self.p1=p1
-        self.p2=p2
-        self.p3=p3
-    
 
-    def computeNormal(self):    # wrong
-        return cross(self.u,self.v,norm = False) 
+    def computeNormal(self):    
+        u = Vector((self.p1[0]-self.p0[0],\
+			self.p1[1]-self.p0[1],\
+			self.p1[2]-self.p0[2]))
+        v = Vector((self.p2[0]-self.p1[0],\
+			self.p2[1]-self.p1[1],\
+			self.p2[2]-self.p1[2]))
+        return cross(u,v,norm=True)
+
+
+              
     def createSys(self):
         """
         creates a coordinate system (u,v,w) for which u is aligned with the first
@@ -375,12 +372,10 @@ class Triangle:
         return vor
     
     def gravityCenter(self):
-	pcg=Point()
-	xg=(self.p1.x+self.p2.x+self.p3.x)/3.
-	yg=(self.p1.y+self.p2.y+self.p3.y)/3.
-	zg=(self.p1.z+self.p2.z+self.p3.z)/3.
-	pcg.setPos(xg,yg,zg)
-	self.cg=pcg
+	xg=(self.p0.x+self.p1.x+self.p2.x)/3.
+	yg=(self.p0.y+self.p1.y+self.p2.y)/3.
+	zg=(self.p0.z+self.p1.z+self.p2.z)/3.
+	pcg = Point((xg, yg, zg))
 	return pcg
 
 

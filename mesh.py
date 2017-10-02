@@ -6,13 +6,39 @@ import triangleLib as tl
 import sys
 import bidLib as l2d
 import json
-
+from frames import Frame
 """
     mesh lib 
 """
 
 
 
+
+
+def read_msh_triangulation(fi, **kwargs):
+    f = open(fi,'r').readlines()
+    _vertices = []
+    app = False
+    ist = 0
+    nv = None
+    while app == False :
+        l = f[ist] 
+        if l.startswith('$Nodes'):
+            nv = int(f[ist+1])
+            app = True
+        ist+=1
+    for i in range(ist+1,ist+nv+1):
+        l=f[i].split()
+        _vertices.append((float(l[1]), float(l[2]), float(l[3])))
+    _faces = []
+    for i in range(ist+nv+1,len(f)):
+        lp = f[i].split()
+        if (len(lp) > 3) and (lp[1] == '2') :
+                _faces.append((int(lp[5]),\
+                                  int(lp[6]),\
+                                  int(lp[7])))
+    d = Triangulation(_vertices, _faces)
+    return d
 
 
 
@@ -357,13 +383,138 @@ class Polyline2D(list):    #always closed
         pass
 
 
-class Triangulation(list):
-    def __init__(self, points, triangles, **kwargs):
+class Triangulation(dict):
+    """
+    dictionary
+    * KEYS : 
+        'vertices' : array of points, 3-real arrays (x,y,z)
+        'faces'    : array of faces, 3 int arrays (3 index in vertices list)
+    """
+    def __init__(self, points, faces, **kwargs):
+        self['vertices'] = points
+        self['faces'] = faces
+   
 
-        print "triangulation creation"
+    def write_obj_file(self,name):
+        with open(name+'.obj','w') as f:
+            f.write('# OBJ file\n')
+            for v in d['vertices']:
+                f.write('v %.4f %.4f %.4f\n' % (v[0],v[1],v[2]))
+            for t in d['faces']:
+                f.write('f')
+                for p in t :
+                    f.write(" %d" % p)
+                f.write('\n')
 
 
 
+
+ 
+    def reorient_convex(self):
+        # reorient the faces of the icosahedron
+        _new_faces = []
+        for f in self['faces']:
+            p0 = tl.Point(self['vertices'][f[0]-1])
+            p1 = tl.Point(self['vertices'][f[1]-1])
+            p2 = tl.Point(self['vertices'][f[2]-1])
+            tr = tl.Triangle(p0, p1, p2)
+            cg = tr.gravityCenter()
+            n0 = tr.computeNormal()
+            n1 = tl.Vector(cg)
+            if tl.dot(n0,n1) < 0:
+                fi = (f[0], f[2], f[1])
+            else:
+                fi = f
+            _new_faces.append(fi)
+   
+        self['faces'] = _new_faces 
+        # ok the icosahedron is correctly oriented in the dict d
+
+
+    def refine_1(self) :
+        d2 = {}
+        _vertices = []
+        _faces = []
+        for f in self['faces']:
+            p0 = self['vertices'][f[0]-1]
+            p1 = self['vertices'][f[1]-1]
+            p2 = self['vertices'][f[2]-1]
+            i0 = None
+            i1 = None
+            i2 = None
+            i3 = None
+            i4 = None
+            i5 = None
+            if p0 not in _vertices:
+                _vertices.append(p0) 
+                i0 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p0:
+                        i0 = i
+                        break
+            if p1 not in _vertices:
+                _vertices.append(p1) 
+                i1 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p1:
+                        i1 = i
+                        break
+            if p2 not in _vertices:
+                _vertices.append(p2)
+                i2 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p2:
+                        i2 = i
+                        break
+            p3 = [0.5*(p1[j]+p2[j]) for j in range(3)]  
+            p4 = [0.5*(p2[j]+p0[j]) for j in range(3)]  
+            p5 = [0.5*(p1[j]+p0[j]) for j in range(3)] 
+            if p3 not in _vertices:
+                _vertices.append(p3) 
+                i3 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p3:
+                        i3 = i
+                        break
+            if p4 not in _vertices:
+                _vertices.append(p4) 
+                i4 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p4:
+                        i4 = i
+                        break
+            if p5 not in _vertices:
+                _vertices.append(p5)
+                i5 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p5:
+                        i5 = i
+                        break
+            i0 += 1 
+            i1 += 1 
+            i2 += 1 
+            i3 += 1 
+            i4 += 1 
+            i5 += 1
+            _faces.append((i4, i3, i2))
+            _faces.append((i5, i1, i3))
+            _faces.append((i5, i3, i4))
+            _faces.append((i0, i5, i4))
+        _vertices2 = []
+        for p in _vertices:
+            d = np.sqrt(p[0]**2. + p[1]**2. + p[2]**2.)
+            ps = (p[0]/d ,\
+                p[1]/d ,\
+                p[2]/d)
+            _vertices2.append(ps) 
+        self['vertices'] = _vertices2
+        self['faces'] = _faces
 
 
 def thick_wing(pf,name):
@@ -403,176 +554,35 @@ def loadXfoilFile(name):
 
 
 
-class meshAround2dObject(object):
-    def __init__(self,name):
-        points,panels = loadXfoilFile(name) 
-        geom = pg.Geometry()
-        for i,p in enumerate(panels):
-            p0 = p[0]
-            p1 = p[1]
-            p_0 = geom.add_point((p0[0],p0[1],0.),0.)
-            p_1 = geom.add_point((p1[0],p1[1],0.),0.)
-            l = geom.add_line(p_0,p_1)
-            plt.scatter([p0[0],p1[0]],[p0[1],p1[1]])
-        fg = open(name+'2D.geo','w')
-        for l in geom.get_code():
-            fg.write(l)
-        plt.axis('equal')
-        plt.show() 
-        
 
 
 
+def wing():
 
+    # creation of a volumic wing with the extrusion of a 2d profile on a 
+    # generatrix defined by a 3d-spline
 
-
-class surfaceMesh(object):
-    def __init__(self,points,Nu,Nv):
-        self.Nu = Nu
-        self.Nv = Nv
-
-        geom = pg.Geometry()
-        for i,p in enumerate(points):
-            p = geom.add_point([p.x,p.y,p.z],lcar=0.1)
-            MSHpts.append(p)
-
-        l0 = geom.add_line(MSHpts[0],MSHpts[1])
-        l1 = geom.add_line(MSHpts[1],MSHpts[2])
-        l2 = geom.add_line(MSHpts[2],MSHpts[3])
-        l3 = geom.add_line(MSHpts[3],MSHpts[0])
-
-
-
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l0,Nu) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l1,Nv) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l2,Nu) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l3,Nv) )
-        ll = geom.add_line_loop((l0,l1,l2,l3))
-        sf = geom.add_ruled_surface(ll)
-        geom._GMSH_CODE.append('Transfinite Surface {%s};' % sf)
-        geom.add_physical_surface(sf, label='zob')
-
-        for l in geom.get_code().split('\n'):
-            print l
-
-
-        geom._GMSH_CODE.append('Recombine Surface {%s};' % sf)
-
-        fg = open('test0.geo','w')
-        for l in geom.get_code():
-            fg.write(l)
-        self.points, self.cells = pg.generate_mesh(geom)
-         
-        self.X = np.array([p[0] for p in self.points])
-        self.Y = np.array([p[1] for p in self.points])
-        self.Z = np.array([p[2] for p in self.points])
-        self.quads = self.cells['quad']
-        
-    def MPLout(self):
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        for t in self.cells['quad']:
-            p0=self.points[t[0]]
-            p1=self.points[t[1]]
-            p2=self.points[t[2]]
-            p3=self.points[t[3]]
-            ax.plot([p0[0],p1[0],p2[0],p3[0],p0[0]],\
-                [p0[1],p1[1],p2[1],p3[1],p0[1]],\
-                [p0[2],p1[2],p2[2],p3[2],p0[2]],'k')
-        plt.show()
-
-
-class volumicMesh(object):
-    def __init__(self, Lx, Ly, Lz, N1, N2, N3, center=[0.,0.,0.]):
-        self.N1 = N1
-        self.N2 = N2
-        self.N3 = N3
-        geom = pg.Geometry()
-        p0 = geom.add_point([center[0]-Lx/2.,\
-                            center[1]+Ly/2.,\
-                            center[2]-Lz/2.],\
-                            lcar=0.1)
-
-
-        p1 = geom.add_point([center[0]+Lx/2.,\
-                            center[1]+Ly/2.,\
-                            center[2]-Lz/2.],\
-                            lcar=0.1)
-
-
-        p2 = geom.add_point([center[0]+Lx/2.,\
-                            center[1]-Ly/2.,\
-                            center[2]-Lz/2.],\
-                            lcar=0.1)
-
-
-        p3 = geom.add_point([center[0]-Lx/2.,\
-                            center[1]-Ly/2.,\
-                            center[2]-Lz/2.],\
-                            lcar=0.1)
-
-
-        l0 = geom.add_line(p0,p1)
-        l1 = geom.add_line(p1,p2)
-        l2 = geom.add_line(p2,p3)
-        l3 = geom.add_line(p3,p0)
-
-
-
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l0,N1) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l1,N2) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l2,N1) )
-        geom._GMSH_CODE.append('Transfinite Line{%s} = %s Using Progression 1;' % (l3,N2) )
-
-        ll = geom.add_line_loop((l0,l1,l2,l3))
-        sf = geom.add_ruled_surface(ll)
-        geom._GMSH_CODE.append('Transfinite Surface {%s};' % sf)
-        geom._GMSH_CODE.append('Recombine Surface {%s};' % sf)
-        geom._GMSH_CODE.append('vol[] = Extrude {0,0,%s} { Surface {%s};Layers{%s};Recombine;};' % (Lz,sf,N3))
-        geom.add_physical_volume('vol',label='zobi')
-
-        fg = open('volMesh.geo','w')
-        for l in geom.get_code():
-            fg.write(l)
-        fg.close()
-        self.points, self.cells = pg.generate_mesh(geom)
-        self.hex=self.cells['hexahedron']
-        meshio.write('volumic0.vtu', self.points, self.cells)# ells['quad'])    #{'mu':mu}
-
-    def compute(self,elem):
-        fp=[]
-        for p in self.points:
-            #p2 = vlm.fluidPoint(p[0],p[1],p[2])
-            p2.computeVelocity(elem)
-            fp.append(p2)
-
-        self.d={'ux' : np.array([p.vel[0] for p in fp]),\
-                'uy' : np.array([p.vel[1] for p in fp]),\
-                'uz' : np.array([p.vel[2] for p in fp])}
-        meshio.write('volumic1.vtu', self.points, self.cells, point_data=self.d)
-
-
-
-if __name__=='__main0__':
     sys.path.append('./profiles')
     from splineProfileMultiParam import  Profile
-    from frames import Frame
     from scipy import interpolate
     from mpl_toolkits.mplot3d import Axes3D
+
+
+    # creation of the geometry pygmsh
     geom = pg.Geometry()
     
-    
+    # control points of the generatrix
     x = [0.0, 0.1, 0.4, 0.6, 0.9]
     y = [0.0, 0.05, 0.09, 0.11, 0.4]
     z = [0.0, 0.3, 0.8, 1.2, 2.9]
 
+    # tck, u represent the parametric 3d curve
     tck, u = interpolate.splprep([x,y,z], s=2)
     name = 'wingZero'
-    Nslices = 100
-    npt = 63
-    t = np.linspace(0., 1., Nslices)
-    pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt)
+    Nslices = 100 # number of slices
+    npt = 63 # points of the profile
+    t = np.linspace(0., 1., Nslices) # parametric space
+    pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt) # creation of the 2d profile
     fi = Frame(t[0], tck, type = 'Xnat')
     pol = pf.polyline()
     pol.to_frame(fi, scale = 0.5)
@@ -588,7 +598,7 @@ if __name__=='__main0__':
     for i in range(Nslices-1):
         si = t[i]
         sip1 = t[i+1]
-        pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt)
+        #pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt)
         fip1 = Frame(sip1, tck, type = 'Xnat')
         pol = pf.polyline()
         pol.to_frame(fip1, scale = 0.5*np.cos(sip1*0.4*np.pi))
@@ -601,7 +611,6 @@ if __name__=='__main0__':
             lloop = geom.add_line_loop([lti, lip1j, -ltip1, -lij])
             sf = geom.add_ruled_surface(lloop)
             phys.append(sf)
-
         li0 = lip1
     lloop = []
     for l in lip1 : lloop.append(-l)
@@ -622,11 +631,13 @@ if __name__=='__main0__':
     import readMSH as rmsh
     d = rmsh.read_msh_file(name)
     rmsh.write_fms_file(name,**d)
+    d = read_msh_triangulation(name+'.msh')
+    d.write_obj_file(name)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__1':
     from random import random
-    Npoints = 2
+    Npoints = 5
     scale = 10.
     name = 'zob'
     geom = pg.Geometry()
@@ -637,13 +648,67 @@ if __name__ == '__main__':
     p0 = tl.Point((0., 0., 0. ))
     p = geom.add_point(p0, scale)
     points.append(p)
+
     for i in range(Npoints):
-        x = scale * (random()-0.5)
-        y = scale * (random()-0.5)
-        z = scale * (random()-0.5)
-        p0 = tl.Point((x,y,z))
+        p0 = (random() - 0.5, random() - 0.5, 0.)
         p = geom.add_point(p0, scale)
         l = geom.add_line(points[0], p)
         points.append(p)
         lines.append(l)
+    sector = []
+    A = points[0].x
+    B = lines[0].points[1].x
+    first = tl.Vector((B[i]-A[i] for i in range(3)))
+    for l in lines[1:]:
+        B = l.points[1].x
+
+        vec = tl.Vector((B[i]-A[i] for i in range(3)))
+        print '------------------------------'
+        print ' first = ' + str(first)
+        print ' vec = '+ str(vec)
+        angle = tl.angle(first,vec)
+        print ' angle = '+ str(angle)
+        sector.append((l.id, angle))
+    def get_angle(tup):
+        return tup[1]
+    sort_sect = sorted(sector, key = get_angle)
+    print sort_sect
+    print ' - - - - - - - - - - - - '
+    sectors = []
+    sectors.append((lines[0].id, sort_sect[0][0])) 
+    for i in range(len(sort_sect)-1):
+        sectors.append((sort_sect[i][0], sort_sect[i+1][0]))
+    sectors.append((sort_sect[-1][0], lines[0].id)) 
+    print sectors
+    # at this point, sectors contains the ordered couples of lines 
+    thick = 0.1
+    
+    for sec in sectors :
+        # we look for a point at distance = thickness of each line
+        print sec
+        l0 = sec[0]
+        l1 = sec[1]
+        for l in lines :
+            if l.id == sec[0] : l0 =l
+            if l.id == sec[1] : l1 =l
+        print l0.points
+    #    print 'line 1 : '+str(lines[sec[0]].points[:].x)
+    #    print 'line 2 : '+str(lines[sec[1]].points[:].x)
     write_geo(name, geom)
+    d = geom.__dict__
+    print d
+
+
+
+
+
+
+if __name__ == '__main__3':
+    # find what is the closest of an icosahedron
+    d= read_msh_triangulation('./icosahedron.msh')
+    d.reorient_convex()
+    for i in range(1):
+        d.refine_1() 
+    d.write_obj_file('icosahedron')
+
+
