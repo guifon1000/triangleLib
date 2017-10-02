@@ -635,7 +635,7 @@ def wing():
     d.write_obj_file(name)
 
 
-if __name__ == '__main__1':
+if __name__ == '__main__':
     from random import random
     Npoints = 5
     scale = 10.
