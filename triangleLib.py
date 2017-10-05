@@ -6,6 +6,7 @@ from time import sleep
 import math
 import mesh
 import os
+import json
 #import meshio
 
 
@@ -395,6 +396,194 @@ class Triangle:
         #ax.scatter(self.s3.mid.x,self.s3.mid.y,self.s3.mid.z)
         ax.plot(x,y,z)
         
+
+class Triangulation(dict):
+    """
+    dictionary
+    * KEYS : 
+        'vertices' : array of points, 3-real arrays (x,y,z)
+        'faces'    : array of faces, 3 int arrays (3 index in vertices list)
+    """
+    def __init__(self, points = None, faces = None, **kwargs):
+        self.vertices = points
+        self.faces = faces
+
+    def load_file(self,name):
+        f = json.load(open(name,'r'))
+        try:
+            self.vertices = f['vertices']
+            self.faces = f['faces']
+        except:
+            print 'not enough info in '+name
+            return 0
+
+    @property
+    def cg(self):
+        return np.mean(np.array(self.vertices)   ,axis=0)
+
+    def _dict(self):
+        d = {}
+        d['vertices'] = self.vertices
+        d['faces'] = self.faces
+        return d
+
+
+    def write_obj_file(self,name):
+        if '.obj' in name :
+            with open('./samples/'+name, 'w') as f:
+                f.write('# OBJ file\n')
+                for v in self.vertices:
+                    f.write('v %.4f %.4f %.4f\n' % (v[0],v[1],v[2]))
+                for t in self.faces:
+                    f.write('f')
+                    for p in t :
+                        f.write(" %d" % p)
+                    f.write('\n')
+
+        elif '.json' in name :
+            f = open('./samples/'+name, 'w')
+            json.dump(self._dict(), f, indent =4)
+    
+    def reorient_convex(self):
+        # reorient the faces of the icosahedron
+        _new_faces = []
+        for f in self.faces:
+            p0 = Point(self.vertices[f[0]-1])
+            p1 = Point(self.vertices[f[1]-1])
+            p2 = Point(self.vertices[f[2]-1])
+            tr = Triangle(p0, p1, p2)
+            cg = tr.gravityCenter()
+            n0 = tr.computeNormal()
+            n1 = Vector(cg)
+            if dot(n0,n1) < 0:
+                fi = (f[0], f[2], f[1])
+            else:
+                fi = f
+            _new_faces.append(fi)
+        self.faces = _new_faces
+        # ok the icosahedron is correctly oriented in the dict d
+
+    def translate(self, vec):
+        _vertices = []
+        for p in self.vertices:
+            _vertices.append([\
+                    p[0] + vec[0],\
+                    p[1] + vec[1],\
+                    p[2] + vec[2]])
+        self.vertices = _vertices
+
+    def refine_on_sphere(self, radius = 1.) :
+        d2 = {}
+        _vertices = []
+        _faces = []
+        for f in self.faces:
+            p0 = self.vertices[f[0]-1]
+            p1 = self.vertices[f[1]-1]
+            p2 = self.vertices[f[2]-1]
+            i0 = None
+            i1 = None
+            i2 = None
+            i3 = None
+            i4 = None
+            i5 = None
+            if p0 not in _vertices:
+                _vertices.append(p0) 
+                i0 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p0:
+                        i0 = i
+                        break
+            if p1 not in _vertices:
+                _vertices.append(p1) 
+                i1 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p1:
+                        i1 = i
+                        break
+            if p2 not in _vertices:
+                _vertices.append(p2)
+                i2 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p2:
+                        i2 = i
+                        break
+            p3 = [0.5*(p1[j]+p2[j]) for j in range(3)]  
+            p4 = [0.5*(p2[j]+p0[j]) for j in range(3)]  
+            p5 = [0.5*(p1[j]+p0[j]) for j in range(3)] 
+            if p3 not in _vertices:
+                _vertices.append(p3) 
+                i3 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p3:
+                        i3 = i
+                        break
+            if p4 not in _vertices:
+                _vertices.append(p4) 
+                i4 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p4:
+                        i4 = i
+                        break
+            if p5 not in _vertices:
+                _vertices.append(p5)
+                i5 = len(_vertices)-1
+            else:
+                for i,v in enumerate(_vertices):
+                    if v==p5:
+                        i5 = i
+                        break
+            i0 += 1 
+            i1 += 1 
+            i2 += 1 
+            i3 += 1 
+            i4 += 1 
+            i5 += 1
+            _faces.append((i4, i3, i2))
+            _faces.append((i5, i1, i3))
+            _faces.append((i5, i3, i4))
+            _faces.append((i0, i5, i4))
+        _vertices2 = []
+        for p in _vertices:
+            d = np.sqrt( (p[0] - self.cg[0])**2. +\
+                         (p[1] - self.cg[1])**2. +\
+                         (p[2] - self.cg[2])**2. )
+            ps =[ radius * (p[i] - self.cg[i])/d + self.cg[i] for i in range(3) ]
+            _vertices2.append(ps)
+        self.vertices = _vertices2
+        self.faces = _faces
+
+
+class Sphere(Triangulation):
+    def __init__(self, radius = 1., center = (0.,0.,0.), refin = 1 ):
+        d = Triangulation()
+        d.load_file('./samples/icosahedron.json')
+        d.translate(center)
+        for i in range(refin):
+            d.refine_on_sphere(radius)
+        self.vertices = d.vertices
+        self.faces = d.faces
+        self.plane_pos = []
+        self.radius = float(radius)
+        plt.clf()
+        for j,p in enumerate(self.vertices):
+            adipos = [(p[i] - self.cg[i])/radius for i in range(3) ]
+            lat = np.arctan2(adipos[1], adipos[0])
+            if abs(adipos[2]) < 1. : 
+                lon = np.arccos(adipos[2])
+            else:
+                lon = 0.
+            self.plane_pos.append((lat,lon))
+            #plt.scatter(lat,lon,c= 'k', s = 1)
+        #plt.show()
+
+
+
+
 
 
 if __name__=='__main__':

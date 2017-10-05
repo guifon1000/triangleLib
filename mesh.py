@@ -37,7 +37,7 @@ def read_msh_triangulation(fi, **kwargs):
                 _faces.append((int(lp[5]),\
                                   int(lp[6]),\
                                   int(lp[7])))
-    d = Triangulation(_vertices, _faces)
+    d = tl.Triangulation(_vertices, _faces)
     return d
 
 
@@ -307,6 +307,7 @@ def box2D(outBox,inObjects,name):
 
 
 
+
 class Polyline2D(list):    #always closed
     def __init__(self, *largs,**kwargs):
         super(Polyline2D,self).__init__(*largs)
@@ -383,138 +384,17 @@ class Polyline2D(list):    #always closed
         pass
 
 
-class Triangulation(dict):
-    """
-    dictionary
-    * KEYS : 
-        'vertices' : array of points, 3-real arrays (x,y,z)
-        'faces'    : array of faces, 3 int arrays (3 index in vertices list)
-    """
-    def __init__(self, points, faces, **kwargs):
-        self['vertices'] = points
-        self['faces'] = faces
-   
-
-    def write_obj_file(self,name):
-        with open(name+'.obj','w') as f:
-            f.write('# OBJ file\n')
-            for v in d['vertices']:
-                f.write('v %.4f %.4f %.4f\n' % (v[0],v[1],v[2]))
-            for t in d['faces']:
-                f.write('f')
-                for p in t :
-                    f.write(" %d" % p)
-                f.write('\n')
+class PlanetPoint(object):
+    def __init__(self):
+        self.r = 1.0
+        self.latitude = 0.
+        self.longitude = 0.
 
 
 
 
- 
-    def reorient_convex(self):
-        # reorient the faces of the icosahedron
-        _new_faces = []
-        for f in self['faces']:
-            p0 = tl.Point(self['vertices'][f[0]-1])
-            p1 = tl.Point(self['vertices'][f[1]-1])
-            p2 = tl.Point(self['vertices'][f[2]-1])
-            tr = tl.Triangle(p0, p1, p2)
-            cg = tr.gravityCenter()
-            n0 = tr.computeNormal()
-            n1 = tl.Vector(cg)
-            if tl.dot(n0,n1) < 0:
-                fi = (f[0], f[2], f[1])
-            else:
-                fi = f
-            _new_faces.append(fi)
-   
-        self['faces'] = _new_faces 
-        # ok the icosahedron is correctly oriented in the dict d
 
 
-    def refine_1(self) :
-        d2 = {}
-        _vertices = []
-        _faces = []
-        for f in self['faces']:
-            p0 = self['vertices'][f[0]-1]
-            p1 = self['vertices'][f[1]-1]
-            p2 = self['vertices'][f[2]-1]
-            i0 = None
-            i1 = None
-            i2 = None
-            i3 = None
-            i4 = None
-            i5 = None
-            if p0 not in _vertices:
-                _vertices.append(p0) 
-                i0 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p0:
-                        i0 = i
-                        break
-            if p1 not in _vertices:
-                _vertices.append(p1) 
-                i1 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p1:
-                        i1 = i
-                        break
-            if p2 not in _vertices:
-                _vertices.append(p2)
-                i2 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p2:
-                        i2 = i
-                        break
-            p3 = [0.5*(p1[j]+p2[j]) for j in range(3)]  
-            p4 = [0.5*(p2[j]+p0[j]) for j in range(3)]  
-            p5 = [0.5*(p1[j]+p0[j]) for j in range(3)] 
-            if p3 not in _vertices:
-                _vertices.append(p3) 
-                i3 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p3:
-                        i3 = i
-                        break
-            if p4 not in _vertices:
-                _vertices.append(p4) 
-                i4 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p4:
-                        i4 = i
-                        break
-            if p5 not in _vertices:
-                _vertices.append(p5)
-                i5 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p5:
-                        i5 = i
-                        break
-            i0 += 1 
-            i1 += 1 
-            i2 += 1 
-            i3 += 1 
-            i4 += 1 
-            i5 += 1
-            _faces.append((i4, i3, i2))
-            _faces.append((i5, i1, i3))
-            _faces.append((i5, i3, i4))
-            _faces.append((i0, i5, i4))
-        _vertices2 = []
-        for p in _vertices:
-            d = np.sqrt(p[0]**2. + p[1]**2. + p[2]**2.)
-            ps = (p[0]/d ,\
-                p[1]/d ,\
-                p[2]/d)
-            _vertices2.append(ps) 
-        self['vertices'] = _vertices2
-        self['faces'] = _faces
 
 
 def thick_wing(pf,name):
@@ -635,7 +515,7 @@ def wing():
     d.write_obj_file(name)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__0':
     from random import random
     Npoints = 5
     scale = 10.
@@ -703,12 +583,65 @@ if __name__ == '__main__':
 
 
 
-if __name__ == '__main__3':
+if __name__ == '__main__':
+    import random
     # find what is the closest of an icosahedron
-    d= read_msh_triangulation('./icosahedron.msh')
-    d.reorient_convex()
-    for i in range(1):
-        d.refine_1() 
-    d.write_obj_file('icosahedron')
+    #d = read_msh_triangulation('./icosahedron.msh')
+    #d.reorient_convex()
+    #d.write_obj_file('./icosahedron.json')
+    d = tl.Triangulation()
+    d.load_file('./samples/icosahedron.json')
+    #docean.reorient_convex()
+    #for p in d['vertices']:
+        #for i in range(3):p[i]+=1.
+    for i in range(3):
+        d.refine_on_sphere()
+    
+
+    s = tl.Sphere(refin = 5, center = (1., 0., 1.), radius = 100.)
+    f = [ 1. for i in range(len(s.vertices)) ]
+    _vertices = []
+
+    Ngeologic = 1000
+
+    things = []
+    for i in range(Ngeologic):
+        hgt = (random.random()-0.5)*0.01
+        lat_geo = (random.random()-0.5)*1.8*np.pi
+        lon_geo = (random.random())*0.9*np.pi
+        sigma = random.random()*0.2
+        if hgt<0. : 
+            sigma *= 1.5
+        if hgt>=0. :
+            hgt *= 5.
+            sigma /= 1.5
+        things.append((hgt, lat_geo, lon_geo, sigma))
+    for i,p in enumerate(s.vertices):
+        lat = s.plane_pos[i][0]
+        lon = s.plane_pos[i][1]
+        for j in range(Ngeologic):
+            hgt = things[j][0]
+            lat_geo = things[j][1]
+            lon_geo = things[j][2]
+            sigma = things[j][3]
+            f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo)**2. + (lon-lon_geo)**2.  ))
+            f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo-2.*np.pi)**2. + (lon-lon_geo)**2.  ))
+            f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo+2.*np.pi)**2. + (lon-lon_geo)**2.  ))
+            north_lon = 2.* np.pi - lon_geo
+            south_lon = - lon_geo
+            f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo)**2. + (lon-north_lon)**2.  ))
+            f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo)**2. + (lon-south_lon)**2.  ))
+    for i,p in enumerate(s.vertices):
+        p0 = [p[j] - s.cg[j] for j in range(3)]
+        _vertices.append([s.cg[j] + p0[j]*f[i] for j in range(3) ] )
+    s.vertices = _vertices
+    #_verticesoc = []
+    #for p in docean.vertices:
+        #_verticesoc.append([p[0]/rocean, p[1]/rocean, p[2]/rocean])
+    #docean.vertices = _verticesoc
+    socean = tl.Sphere(refin = 4, center = s.cg, radius = s.radius)
+    s.write_obj_file('planet.obj')
+    socean.write_obj_file('ocean.obj')
+    #docean.write_obj_file('ocean')
 
 
