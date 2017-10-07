@@ -583,26 +583,15 @@ if __name__ == '__main__0':
 
 
 
-if __name__ == '__main__':
+if __name__ == '__main__zzo':
     import random
-    # find what is the closest of an icosahedron
-    #d = read_msh_triangulation('./icosahedron.msh')
-    #d.reorient_convex()
-    #d.write_obj_file('./icosahedron.json')
-    d = tl.Triangulation()
-    d.load_file('./samples/icosahedron.json')
-    #docean.reorient_convex()
-    #for p in d['vertices']:
-        #for i in range(3):p[i]+=1.
-    for i in range(3):
-        d.refine_on_sphere()
-    
 
-    s = tl.Sphere(refin = 5, center = (1., 0., 1.), radius = 100.)
+    s = tl.Sphere(refin = 4, center = (1., 0., 1.), radius = 100.)
+    print "sphere created"
     f = [ 1. for i in range(len(s.vertices)) ]
     _vertices = []
 
-    Ngeologic = 1000
+    Ngeologic = 1
 
     things = []
     for i in range(Ngeologic):
@@ -631,17 +620,19 @@ if __name__ == '__main__':
             south_lon = - lon_geo
             f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo)**2. + (lon-north_lon)**2.  ))
             f[i] += hgt * np.exp(-(1./sigma**2.) * ((lat-lat_geo)**2. + (lon-south_lon)**2.  ))
-    for i,p in enumerate(s.vertices):
-        p0 = [p[j] - s.cg[j] for j in range(3)]
-        _vertices.append([s.cg[j] + p0[j]*f[i] for j in range(3) ] )
-    s.vertices = _vertices
+        p = [p[j] - s.cg[j] for j in range(3)]
+        #_vertices.append([s.cg[j] + p0[j]*f[i] for j in range(3) ] )
+        
+    #s.vertices = _vertices
     #_verticesoc = []
     #for p in docean.vertices:
         #_verticesoc.append([p[0]/rocean, p[1]/rocean, p[2]/rocean])
     #docean.vertices = _verticesoc
-    socean = tl.Sphere(refin = 4, center = s.cg, radius = s.radius)
+    #socean = tl.Sphere(refin = 4, center = s.cg, radius = s.radius)
     s.write_obj_file('planet.obj')
-    socean.write_obj_file('ocean.obj')
+    #socean.write_obj_file('ocean.obj')
     #docean.write_obj_file('ocean')
 
 
+if __name__ == '__main__':
+    ico = tl.Icosahedron(center = (1., 0., 1.), radius = 100.)

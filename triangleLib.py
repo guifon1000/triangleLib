@@ -229,16 +229,18 @@ class Plane:
     """
     defines a plane 
     """
-    def __init__(self):
-        self.a=0.
-        self.b=0.
-        self.c=0.
-        self.d=0.
-    def set(self,x):
-        self.a=x[0]
-        self.b=x[1]
-        self.c=x[2]
-        self.d=x[3]
+    def __init__(self, *largs):
+        try:
+            self.a = float(largs[0])
+            self.b = float(largs[1])
+            self.c = float(largs[2])
+            self.d = float(largs[3])
+        except:
+            self.a = 0.
+            self.b = 0.
+            self.c = 0.
+            self.d = 0.
+            
     def setMediator(self,A,B):
         s=Segment()
         s.setPoints(A,B)
@@ -246,10 +248,11 @@ class Plane:
         v=Vector()
         v.fromPoints(s.mid,B)
         v.normalize()
-        self.a=v.x
-        self.b=v.y
-        self.c=v.z
-        self.d=-(v.x*s.mid.x+v.y*s.mid.y+v.z*s.mid.z)
+        self.a = v[0]
+        self.b = v[1]
+        self.c = v[2]
+        self.d = -( v[0]*s.mid[0] + v[1]*s.mid[1] + v[2]*s.mid[2] )
+
     def set3Points(self,A,B,C):
         v0=Vector()
         v1=Vector()
@@ -257,10 +260,10 @@ class Plane:
         v1.fromPoints(A,C)
         v2=cross(v0,v1)
         v=v2
-        self.a=v.x
-        self.b=v.y
-        self.c=v.z
-        self.d=-(v.x*A.x+v.y*A.y+v.z*A.z)
+        self.a = v[0]
+        self.b = v[1]
+        self.c = v[2]
+        self.d = - ( v[0]*A[0] + v[1]*A[1] + v[2]*A[2] )
     def setPointNormal(self,p,normal):
         print 'zob'
     def draw(self,ax):
@@ -278,6 +281,13 @@ def intersect3Planes(p1,p2,p3):
     return pvor
 
 
+def project_on_sphere(p, center, radius):
+
+
+    d = np.sqrt( (p[0] - center[0])**2. +\
+                 (p[1] - center[1])**2. +\
+                 (p[2] - center[2])**2. )
+    return [ radius * (p[i] - center[i])/d + center[i] for i in range(3) ]
 
  
 class Triangle:
@@ -472,71 +482,37 @@ class Triangulation(dict):
                     p[2] + vec[2]])
         self.vertices = _vertices
 
+
+
+
     def refine_on_sphere(self, radius = 1.) :
         d2 = {}
         _vertices = []
         _faces = []
+
+
+
         for f in self.faces:
             p0 = self.vertices[f[0]-1]
             p1 = self.vertices[f[1]-1]
             p2 = self.vertices[f[2]-1]
-            i0 = None
-            i1 = None
-            i2 = None
-            i3 = None
-            i4 = None
-            i5 = None
-            if p0 not in _vertices:
-                _vertices.append(p0) 
-                i0 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p0:
-                        i0 = i
-                        break
-            if p1 not in _vertices:
-                _vertices.append(p1) 
-                i1 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p1:
-                        i1 = i
-                        break
-            if p2 not in _vertices:
-                _vertices.append(p2)
-                i2 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p2:
-                        i2 = i
-                        break
-            p3 = [0.5*(p1[j]+p2[j]) for j in range(3)]  
-            p4 = [0.5*(p2[j]+p0[j]) for j in range(3)]  
-            p5 = [0.5*(p1[j]+p0[j]) for j in range(3)] 
-            if p3 not in _vertices:
-                _vertices.append(p3) 
-                i3 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p3:
-                        i3 = i
-                        break
-            if p4 not in _vertices:
-                _vertices.append(p4) 
-                i4 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p4:
-                        i4 = i
-                        break
-            if p5 not in _vertices:
-                _vertices.append(p5)
-                i5 = len(_vertices)-1
-            else:
-                for i,v in enumerate(_vertices):
-                    if v==p5:
-                        i5 = i
-                        break
+            _vertices.append(p0) 
+            _vertices.append(p1) 
+            _vertices.append(p2)
+            p3 = project_on_sphere([0.5*(p1[j]+p2[j]) for j in range(3)] , self.cg, radius) 
+            p4 = project_on_sphere([0.5*(p2[j]+p0[j]) for j in range(3)] , self.cg, radius)
+            p5 = project_on_sphere([0.5*(p1[j]+p0[j]) for j in range(3)] , self.cg, radius)
+            _vertices.append(p3) 
+            _vertices.append(p4) 
+            _vertices.append(p5)
+
+            i0 = 0
+            i1 = 1 
+            i2 = 2
+            i3 = 3
+            i4 = 4
+            i5 = 5
+
             i0 += 1 
             i1 += 1 
             i2 += 1 
@@ -548,13 +524,9 @@ class Triangulation(dict):
             _faces.append((i5, i3, i4))
             _faces.append((i0, i5, i4))
         _vertices2 = []
-        for p in _vertices:
-            d = np.sqrt( (p[0] - self.cg[0])**2. +\
-                         (p[1] - self.cg[1])**2. +\
-                         (p[2] - self.cg[2])**2. )
-            ps =[ radius * (p[i] - self.cg[i])/d + self.cg[i] for i in range(3) ]
-            _vertices2.append(ps)
-        self.vertices = _vertices2
+        #for p in _vertices:
+        #    _vertices2.append(ps)
+        self.vertices = _vertices
         self.faces = _faces
 
 
@@ -582,7 +554,13 @@ class Sphere(Triangulation):
         #plt.show()
 
 
-
+class Icosahedron(Triangulation):
+    def __init__(self, radius = 1., center = (0.,0.,0.)):
+        d = Triangulation()
+        d.load_file('./samples/icosahedron.json')
+        d.translate(center)
+        self.vertices = d.vertices
+        self.faces = d.faces
 
 
 
