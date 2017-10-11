@@ -1,4 +1,7 @@
+import pygmsh as pg 
 
+
+lcar = 0.1
 class Point(list):
     def __init__(self,*largs, **kwargs):
         """
@@ -7,3 +10,7 @@ class Point(list):
             can have an index
         """
         super(Point,self).__init__(*largs)
+
+    def pop_to_geom(self, geom):
+        return geom.add_point(self, lcar)
+        

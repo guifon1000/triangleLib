@@ -2,10 +2,9 @@ import numpy as np
 from scipy.special import binom
 from scipy.interpolate import interp1d
 import sys
-sys.path.append('../')
-import mesh
 import matplotlib.pyplot as plt
-
+sys.path.append('../classes/')
+from Polyline2D import Polyline2D
 name="foil"
 par1=0.1
 par2=0.05
@@ -63,7 +62,7 @@ class Profile(object):
         for i in range(1,len(self.x)):
             p = (self.x[i], self.intra[i])
             l.append(p)
-        pl = mesh.Polyline2D(l,closed = True)
+        pl = Polyline2D(l,closed = True)
         return pl
 
 def Naca4DigitsProfile(digits,N):
