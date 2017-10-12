@@ -8,6 +8,7 @@ from classes.Sphere import Sphere
 from classes.Frame import Frame
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
+from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -108,11 +109,11 @@ d.write_obj_file('refined_icosahedron.obj')
 s1 = Sphere(refin = 0, center = (1.,1.,1.), radius = 0.3)
 s2 = Sphere(refin = 1, center = (0.,-4.,2.), radius = 0.1)
 s3 = Sphere(refin = 2, center = (-3.,1.,-1.), radius = 0.7)
-s4 = Sphere(refin = 3, center = (-3.,-5.,-3.), radius = 0.8)
+p1 = Planet(refin = 3, center = (-3.,-5.,-3.), radius = 0.8)
 s1.write_obj_file('sphere1.obj')
 s2.write_obj_file('sphere2.obj')
 s3.write_obj_file('sphere3.obj')
-s4.write_obj_file('sphere4.obj')
+p1.write_obj_file('planet1.obj')
 
 
 print 'ok'

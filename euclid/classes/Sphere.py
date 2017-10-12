@@ -2,11 +2,12 @@ from Triangulation import Triangulation
 from Point import Point
 from Vector import Vector
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 
 class Sphere(Triangulation):
     def __init__(self, radius = 1., center = (0.,0.,0.), refin = 1 , **kwargs):
+        self.radius = float(radius)
         d = Triangulation()
         d.load_file('../samples/icosahedron.json')
         d.translate(center)
@@ -18,5 +19,18 @@ class Sphere(Triangulation):
             _vertices.append(Point([d.cg[i] + (p[i]-d.cg[i])*radius/dist for i in range(3)]))
         self.vertices = _vertices
         self.faces = d.faces
+
+
+    def mercator_map(self):
         self.plane_pos = []
-        self.radius = float(radius)
+        #plt.clf()
+        for j,p in enumerate(self.vertices):
+            adipos = [(p[i] - self.cg[i])/self.radius for i in range(3) ]
+            lon = np.arctan2(adipos[1], adipos[0])
+            if abs(adipos[2]) < 1. : 
+                lat = np.arccos(adipos[2])
+            else:
+                lat = 0.
+            self.plane_pos.append((lon,lat))
+            #plt.scatter(lon,lat,c= 'k', s = 1)
+        #plt.show()
