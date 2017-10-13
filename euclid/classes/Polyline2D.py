@@ -1,5 +1,8 @@
-
+import numpy as np
 from Point import Point
+
+
+
 class Polyline2D(list):    #always closed
     def __init__(self, *largs,**kwargs):
         super(Polyline2D,self).__init__(*largs)
@@ -25,14 +28,15 @@ class Polyline2D(list):    #always closed
             fac_scale = kwargs['scale']
         except:
             fac_scale = 1.
-        for i in range(len(self.pt3d)) :
-            self.pt3d[i][0] *= fac_scale * (f[2][0] + f[3][0] )
-            self.pt3d[i][0] += f[0][0] 
-            self.pt3d[i][1] *= fac_scale * (f[2][1] + f[3][1] )
-            self.pt3d[i][1] += f[0][1] 
-            self.pt3d[i][2] *= fac_scale * (f[2][2] + f[3][2] )
-            self.pt3d[i][2] += f[0][2] 
 
+        for i in range(len(self.pt3d)) :
+            self.pt3d[i][0] *= fac_scale * (f[1][0] + f[1][1] + f[1][2] )
+            self.pt3d[i][0] += f[0][0] 
+            self.pt3d[i][1] *= fac_scale * (f[2][0] + f[2][1] + f[2][2] )
+            self.pt3d[i][1] += f[0][1] 
+            self.pt3d[i][2] *= fac_scale * (f[3][0] + f[3][1] + f[3][2] )
+            self.pt3d[i][2] += f[0][2] 
+            print self.pt3d[i]
     def pop_to_geom(self, geom):
         pts = []
         lns = []

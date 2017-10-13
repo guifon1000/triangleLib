@@ -6,6 +6,8 @@ from classes.Triangulation import Triangulation
 from classes.Vector import Vector
 from classes.Sphere import Sphere
 from classes.Frame import Frame
+from classes.Frame import Frame0
+from classes.Extrusion import Extrusion
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
 from modelers.planet.Planet import  Planet
@@ -109,7 +111,7 @@ d.write_obj_file('refined_icosahedron.obj')
 s1 = Sphere(refin = 0, center = (1.,1.,1.), radius = 0.3)
 s2 = Sphere(refin = 1, center = (0.,-4.,2.), radius = 0.1)
 s3 = Sphere(refin = 2, center = (-3.,1.,-1.), radius = 0.7)
-p1 = Planet(refin = 3, center = (-3.,-5.,-3.), radius = 0.8)
+p1 = Planet(refin = 1, center = (-3.,-5.,-3.), radius = 0.8)
 s1.write_obj_file('sphere1.obj')
 s2.write_obj_file('sphere2.obj')
 s3.write_obj_file('sphere3.obj')
@@ -119,6 +121,31 @@ p1.write_obj_file('planet1.obj')
 print 'ok'
 
 idtest += 1
+print "##################################################################################"
+print "############################# TEST n."+str(idtest)+":VECTOR EXTRUSION       #############"
+print "##################################################################################"
+
+start_point = Point([0.,0.,0.])
+end_point = Point([1.,1.,0.])
+start_frame = Frame( ( start_point, (1.,0., 0.) , (0., 1., 0.), (0., 0., 1.)   )     )
+end_frame = Frame( ( end_point, \
+                     Vector(( .7, .7, 0.)).unit(), \
+                     Vector(( -.7, .7, 0.)).unit(), \
+                     Vector((0., 0., 1.)).unit()   ))
+
+pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 10) # creation of the 2d profile
+pol = pf.polyline()
+
+pol.pop_to_geom(geom)
+pol.to_frame(start_frame, scale = 1.)
+pol.pop_to_geom(geom)
+pol.to_frame(end_frame, scale = 5.)
+pol.pop_to_geom(geom)
+idtest += 1
+write_geo('tests', geom)
+
+
+1/0
 print "##################################################################################"
 print "############################# TEST n."+str(idtest)+":          PROFILE 3D       #############"
 print "##################################################################################"
@@ -130,12 +157,15 @@ z = [0.0, 0.3, 0.8, 1.2, 2.9]
 
 # tck, u represent the parametric 3d curve
 tck, u = interpolate.splprep([x,y,z], s=2)
+ex = Extrusion()
+
+
 name = 'wingZero'
 Nslices = 100 # number of slices
 npt = 63 # points of the profile
 t = np.linspace(0., 1., Nslices) # parametric space
 pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt) # creation of the 2d profile
-fi = Frame(t[0], tck, type = 'Xnat')
+fi = Frame0(t[0], tck, type = 'Xnat')
 pol = pf.polyline()
 pol.to_frame(fi, scale = 0.5)
 li = pol.pop_to_geom(geom)
@@ -151,7 +181,7 @@ phys.append(sf)
 for i in range(Nslices-1):
     si = t[i]
     sip1 = t[i+1]
-    fip1 = Frame(sip1, tck, type = 'Xnat')
+    fip1 = Frame0(sip1, tck, type = 'Xnat')
     pol = pf.polyline()
     pol.to_frame(fip1, scale = 0.5*np.cos(sip1*0.4*np.pi))
     lip1 = pol.pop_to_geom(geom)
@@ -172,6 +202,5 @@ sf = geom.add_plane_surface(ll)
 phys.append(sf)
 physS = geom.add_surface_loop(phys)
 geom.add_physical_surface(phys, label = 'profile')
-write_geo('tests', geom)
 
 

@@ -5,10 +5,27 @@ from Point import Point
 import sys 
 sys.path.append('../')
 from functions import cross
+import numpy as np
+
 
 class Frame(list):
+    """
+    if (T,N,B) is a frame placed in M, the given list is :
+    [ 
+      [Mx, My, Mz],
+      [Tx, Ty, Tz],
+      [Nx, Ny, Nz],
+      [Bx, By, Bz] ]
+    """
+    def __init__(self, *largs):
+        super(Frame, self).__init__(*largs)
+
+
+
+
+class Frame0(list):
     def __init__(self, s, tck, **kwargs):
-        super(Frame,self).__init__()
+        super(Frame0,self).__init__()
         if kwargs.has_key('type'):
             t =  interpolate.splev(s , tck, der = 0)
             orig = Point([t[0], t[1], t[2]])
