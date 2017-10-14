@@ -26,17 +26,18 @@ class Polyline2D(list):    #always closed
     def to_frame(self, f, **kwargs):
         try:
             fac_scale = kwargs['scale']
+            fac_scale = 1.
         except:
             fac_scale = 1.
-
+        print f
         for i in range(len(self.pt3d)) :
-            self.pt3d[i][0] *= fac_scale * (f[1][0] + f[1][1] + f[1][2] )
-            self.pt3d[i][0] += f[0][0] 
-            self.pt3d[i][1] *= fac_scale * (f[2][0] + f[2][1] + f[2][2] )
-            self.pt3d[i][1] += f[0][1] 
-            self.pt3d[i][2] *= fac_scale * (f[3][0] + f[3][1] + f[3][2] )
-            self.pt3d[i][2] += f[0][2] 
-            print self.pt3d[i]
+            X = f[0][0] + (f[2][0] * self.pt3d[i][0] ) + (f[3][0] * self.pt3d[i][1] )
+            Y = f[0][1] + (f[2][1] * self.pt3d[i][1] ) + (f[3][1] * self.pt3d[i][0] )
+            Z = f[0][2] 
+            self.pt3d[i] = [X, Y, Z]
+            #print self.pt3d[i]
+
+
     def pop_to_geom(self, geom):
         pts = []
         lns = []

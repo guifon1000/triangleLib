@@ -127,20 +127,33 @@ print "#########################################################################
 
 start_point = Point([0.,0.,0.])
 end_point = Point([1.,1.,0.])
-start_frame = Frame( ( start_point, (1.,0., 0.) , (0., 1., 0.), (0., 0., 1.)   )     )
+start_frame = Frame( ( start_point, \
+                     Vector(( 0., 0., 1.)), \
+                     Vector(( 0., 1., 0.)), \
+                     Vector((1., 0., 0.))   ))
 end_frame = Frame( ( end_point, \
-                     Vector(( .7, .7, 0.)).unit(), \
-                     Vector(( -.7, .7, 0.)).unit(), \
-                     Vector((0., 0., 1.)).unit()   ))
+                     Vector(( 0., 0., 1.)), \
+                     Vector(( .7, .7, 0.)), \
+                     Vector((-.7, .7, 0.))   ))
 
-pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 10) # creation of the 2d profile
+print '*****************'
+print start_frame
+
+print '*****************'
+
+
+pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
 pol = pf.polyline()
 
-pol.pop_to_geom(geom)
-pol.to_frame(start_frame, scale = 1.)
-pol.pop_to_geom(geom)
 pol.to_frame(end_frame, scale = 5.)
 pol.pop_to_geom(geom)
+
+
+pf2 = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
+pol2 = pf2.polyline()
+
+pol2.to_frame(start_frame, scale = 5.)
+pol2.pop_to_geom(geom)
 idtest += 1
 write_geo('tests', geom)
 
