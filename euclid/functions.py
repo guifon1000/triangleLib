@@ -1,9 +1,10 @@
 import sys
 sys.path.append('./classes/')
+from classes.Point import Point
 from classes.Vector import Vector
-
-
-
+from classes.Frame import Frame
+from scipy import interpolate
+import numpy as np
 
 def cross(u,v):
     pv=[]
@@ -16,3 +17,35 @@ def cross(u,v):
 
 def dot(u,v):
     return u[0]*v[0]+u[1]*v[1]+u[2]*v[2]
+
+
+def parameter_frame(tck, s, mode = 'frenet'):
+    from classes.Frame import Frame
+    basis = []
+    t =  interpolate.splev(s , tck, der = 0)
+    orig = Point([t[0], t[1], t[2]])
+    if mode == 'frenet':
+        t =  interpolate.splev(s , tck, der = 1)
+        xp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
+        t =  interpolate.splev(s , tck, der = 2)
+        xpp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
+        T = xp.unit()
+        basis.append(T)
+        B = cross(xp, xpp)
+        basis.append(B)
+        N = cross(B, T)
+        basis.append(N)
+
+    if mode == 'Xnat':
+        t =  interpolate.splev(s , tck, der = 1)
+        xp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
+        T = xp.unit()
+        basis.append(T)
+        B = cross((1.,0.,0.), T)
+        basis.append(B)
+        N = cross(T, B)
+        basis.append(N)
+    matrix = np.zeros((3,3), dtype =float)
+    for i in range(3) : matrix[i] = basis[i]
+    return Frame((orig, matrix))
+

@@ -10,17 +10,16 @@ class Polyline2D(list):    #always closed
             self.z=kwargs['z']
         else:
             self.z = 0.
-        if kwargs.has_key('closed'):
-            self.check_closed = kwargs['closed']
+        self.pt3d = []
+        if self[0] == self[-1] :
+            self.check_closed = True
+            print 'CLOSED POLYLINE'
         else : 
             self.check_closed = False
-        if self.check_closed : 
-            p = self[0]
-            self.append(p)
-        self.pt3d = []
+            print 'OPEN POLYLINE'
         for i in range(len(self)):
             p = Point(self[i])
-            self.pt3d.append( Point([p[0] , p[1], 0.]))
+            self.pt3d.append( Point([0. , 0., 0.]))
 
 
     def to_frame(self, f, **kwargs):

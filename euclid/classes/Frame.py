@@ -3,8 +3,7 @@ from scipy import interpolate
 from Vector import Vector
 from Point import Point
 import sys 
-sys.path.append('../')
-from functions import cross
+sys.path.append('../../')
 import numpy as np
 
 
@@ -25,6 +24,7 @@ class Frame(list):
 
 class Frame0(list):
     def __init__(self, s, tck, **kwargs):
+        from functions import cross
         super(Frame0,self).__init__()
         if kwargs.has_key('type'):
             t =  interpolate.splev(s , tck, der = 0)

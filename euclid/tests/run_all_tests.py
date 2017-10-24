@@ -14,7 +14,7 @@ from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-
+from functions import parameter_frame
 
 def write_geo(name,geom):
     fg = open(name+'.geo','w')
@@ -38,11 +38,11 @@ idtest = 1
 points = [p1, p2, p3]
 
 geo_points = []
-for p in points: 
-    geo_points.append(p.pop_to_geom(geom))
+#for p in points: 
+#    geo_points.append(p.pop_to_geom(geom))
 
 
-print [g.id for g in geo_points]
+#print [g.id for g in geo_points]
 
 
 print "##################################################################################"
@@ -52,7 +52,7 @@ print "#########################################################################
 t = Triangle(points)
 
 triangles = [t]
-for tr in triangles: tr.pop_to_geom(geom)
+#for tr in triangles: tr.pop_to_geom(geom)
 print ' ----- A TRIANGLE ------ '
 print t
 print 'attributes'
@@ -66,7 +66,7 @@ t = -t
 print t
 print 'attributes'
 print 'cog = '+str(t.cg)
-t.cg.pop_to_geom(geom)
+#t.cg.pop_to_geom(geom)
 print 'normal = '+str(t.normal)
 
 #t = -t
@@ -127,38 +127,64 @@ print "#########################################################################
 
 start_point = Point([0.,0.,0.])
 end_point = Point([1.,1.,0.])
-start_frame = Frame( ( start_point, \
-                     Vector(( 0., 0., 1.)), \
-                     Vector(( 0., 1., 0.)), \
-                     Vector((1., 0., 0.))   ))
-end_frame = Frame( ( end_point, \
-                     Vector(( 0., 0., 1.)), \
-                     Vector(( .7, .7, 0.)), \
-                     Vector((-.7, .7, 0.))   ))
 
-print '*****************'
-print start_frame
+mat = np.zeros((3, 3), dtype = float)
 
-print '*****************'
+alpha = np.pi/6
 
 
-pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
-pol = pf.polyline()
+xf = Vector((np.cos(alpha), np.sin(alpha), 0.))
+yf = Vector((-np.sin(alpha), np.cos(alpha), 0.))
+zf = Vector((0., 0., 0.))
 
-pol.to_frame(end_frame, scale = 5.)
-pol.pop_to_geom(geom)
+mat[0] = xf
+mat[1] = yf
+mat[2] = zf
 
 
-pf2 = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
-pol2 = pf2.polyline()
 
-pol2.to_frame(start_frame, scale = 5.)
-pol2.pop_to_geom(geom)
-idtest += 1
+print mat
+
+# control points of the generatrix
+x = [0.0, 0.9, 1.8, 2.7]
+y = [0.0, 0.4, 0.8, 1.2]
+z = [0.0, 2.9, 5.8, 8.7]
+
+# tck, u represent the parametric 3d curve
+tck, u = interpolate.splprep([x,y,z], s=2)
+for s in [0.25]:
+    frame = parameter_frame(tck, s, mode = 'Xnat')
+    pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 12) # creation of the 2d profile
+    pol = pf.polyline()
+    #pol.pt3d = [Point([0., 0., 0.]) for p in pol  ]
+    for i,p in enumerate(pol):
+        loc  =  np.dot([p[0], p[1], 0.], frame[1])
+        pol.pt3d[i][0] = frame[0][0] + loc[0]
+        pol.pt3d[i][1] = frame[0][1] + loc[1]
+        pol.pt3d[i][2] = frame[0][2] + loc[2]
+        print str(p)+' --> '+str(pol.pt3d[i])
+        pol.pop_to_geom(geom)
+
 write_geo('tests', geom)
 
 
 1/0
+#pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
+#pol = pf.polyline()
+
+#pol.to_frame(end_frame, scale = 5.)
+#pol.pop_to_geom(geom)
+
+
+#pf2 = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
+#pol2 = pf2.polyline()
+
+#pol2.to_frame(start_frame, scale = 5.)
+#pol2.pop_to_geom(geom)
+
+
+
+idtest += 1
 print "##################################################################################"
 print "############################# TEST n."+str(idtest)+":          PROFILE 3D       #############"
 print "##################################################################################"
@@ -170,7 +196,7 @@ z = [0.0, 0.3, 0.8, 1.2, 2.9]
 
 # tck, u represent the parametric 3d curve
 tck, u = interpolate.splprep([x,y,z], s=2)
-ex = Extrusion()
+#ex = Extrusion()
 
 
 name = 'wingZero'
@@ -217,3 +243,4 @@ physS = geom.add_surface_loop(phys)
 geom.add_physical_surface(phys, label = 'profile')
 
 
+write_geo('tests', geom)
