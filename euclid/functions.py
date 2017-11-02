@@ -30,11 +30,11 @@ def parameter_frame(tck, s, mode = 'frenet'):
         t =  interpolate.splev(s , tck, der = 2)
         xpp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
         T = xp.unit()
-        basis.append(T)
+        basis.append(T.unit())
         B = cross(xp, xpp)
-        basis.append(B)
+        basis.append(B.unit())
         N = cross(B, T)
-        basis.append(N)
+        basis.append(N.unit())
 
     if mode == 'Xnat':
         t =  interpolate.splev(s , tck, der = 1)

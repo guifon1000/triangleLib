@@ -7,7 +7,6 @@ from classes.Vector import Vector
 from classes.Sphere import Sphere
 from classes.Frame import Frame
 from classes.Frame import Frame0
-from classes.Extrusion import Extrusion
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
 from modelers.planet.Planet import  Planet
@@ -146,24 +145,26 @@ mat[2] = zf
 print mat
 
 # control points of the generatrix
-x = [0.0, 0.9, 1.8, 2.7]
-y = [0.0, 0.4, 0.8, 1.2]
-z = [0.0, 2.9, 5.8, 8.7]
+x = [0.0, 0.69, 1.2, 2.7]
+y = [0.0, 0.4, 0.8, 1.4]
+z = [0.0, 2.9, 3.8, 8.8]
 
 # tck, u represent the parametric 3d curve
-tck, u = interpolate.splprep([x,y,z], s=2)
-for s in [0.25]:
-    frame = parameter_frame(tck, s, mode = 'Xnat')
+tck, u = interpolate.splprep([x,y,z], s=3)
+for s in np.linspace(0., 1., num = 50):
+    frame = parameter_frame(tck, s, mode = 'frenet')
     pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 12) # creation of the 2d profile
     pol = pf.polyline()
     #pol.pt3d = [Point([0., 0., 0.]) for p in pol  ]
     for i,p in enumerate(pol):
-        loc  =  np.dot([p[0], p[1], 0.], frame[1])
+        loc  =  np.dot([0., p[0], p[1]], frame[1])
+        print loc
+        print 'tt'
         pol.pt3d[i][0] = frame[0][0] + loc[0]
         pol.pt3d[i][1] = frame[0][1] + loc[1]
         pol.pt3d[i][2] = frame[0][2] + loc[2]
-        print str(p)+' --> '+str(pol.pt3d[i])
-        pol.pop_to_geom(geom)
+        #print str(p)+' --> '+str(pol.pt3d[i])
+    pol.pop_to_geom(geom)
 
 write_geo('tests', geom)
 

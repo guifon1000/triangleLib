@@ -6,6 +6,8 @@ from Point import Point
 class Polyline2D(list):    #always closed
     def __init__(self, *largs,**kwargs):
         super(Polyline2D,self).__init__(*largs)
+        if kwargs.has_key('closed'):
+            if kwargs['closed'] : self.append(self[0])
         if kwargs.has_key('z'):
             self.z=kwargs['z']
         else:
