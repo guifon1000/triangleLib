@@ -6,7 +6,7 @@ from classes.Triangulation import Triangulation
 from classes.Vector import Vector
 from classes.Sphere import Sphere
 from classes.Frame import Frame
-from classes.Frame import Frame0
+from classes.Quaternion import Quaternion
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
 from modelers.planet.Planet import  Planet
@@ -22,7 +22,6 @@ def write_geo(name,geom):
     fg.close()
 
 
-geom = pg.built_in.Geometry()
 
 
 
@@ -121,68 +120,48 @@ print 'ok'
 
 idtest += 1
 print "##################################################################################"
-print "############################# TEST n."+str(idtest)+":VECTOR EXTRUSION       #############"
+print "############################# TEST n."+str(idtest)+": EXTRUSION ALONG 3D CURVE      #############"
 print "##################################################################################"
 
-start_point = Point([0.,0.,0.])
-end_point = Point([1.,1.,0.])
 
-mat = np.zeros((3, 3), dtype = float)
-
-alpha = np.pi/6
+geom = pg.built_in.Geometry()
+#mat = np.zeros((3, 3), dtype = float)
+#alpha = np.pi/6
 
 
-xf = Vector((np.cos(alpha), np.sin(alpha), 0.))
-yf = Vector((-np.sin(alpha), np.cos(alpha), 0.))
-zf = Vector((0., 0., 0.))
+#xf = Vector((np.cos(alpha), np.sin(alpha), 0.))
+#yf = Vector((-np.sin(alpha), np.cos(alpha), 0.))
+#zf = Vector((0., 0., 0.))
 
-mat[0] = xf
-mat[1] = yf
-mat[2] = zf
+#mat[0] = xf
+#mat[1] = yf
+#mat[2] = zf
 
 
 
-print mat
 
 # control points of the generatrix
 x = [0.0, 0.69, 1.2, 2.7]
-y = [0.0, 0.4, 0.8, 1.4]
+y = [0.0, 0.14, 0.8, 1.4]
 z = [0.0, 2.9, 3.8, 8.8]
 
 # tck, u represent the parametric 3d curve
 tck, u = interpolate.splprep([x,y,z], s=3)
-for s in np.linspace(0., 1., num = 50):
+for s in np.linspace(0., 1., num = 200):
     frame = parameter_frame(tck, s, mode = 'frenet')
     pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 12) # creation of the 2d profile
     pol = pf.polyline()
-    #pol.pt3d = [Point([0., 0., 0.]) for p in pol  ]
-    for i,p in enumerate(pol):
-        loc  =  np.dot([0., p[0], p[1]], frame[1])
-        print loc
-        print 'tt'
-        pol.pt3d[i][0] = frame[0][0] + loc[0]
-        pol.pt3d[i][1] = frame[0][1] + loc[1]
-        pol.pt3d[i][2] = frame[0][2] + loc[2]
-        #print str(p)+' --> '+str(pol.pt3d[i])
+    pol.to_frame(frame)
     pol.pop_to_geom(geom)
 
-write_geo('tests', geom)
+write_geo('test_'+str(idtest), geom)
 
+idtest += 1
+print "##################################################################################"
+print "############################# TEST n."+str(idtest)+":          QUATERNION       #############"
+print "##################################################################################"
 
-1/0
-#pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
-#pol = pf.polyline()
-
-#pol.to_frame(end_frame, scale = 5.)
-#pol.pop_to_geom(geom)
-
-
-#pf2 = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 40) # creation of the 2d profile
-#pol2 = pf2.polyline()
-
-#pol2.to_frame(start_frame, scale = 5.)
-#pol2.pop_to_geom(geom)
-
+q = Quaternion((0., 0., 0.))
 
 
 idtest += 1
@@ -190,6 +169,7 @@ print "#########################################################################
 print "############################# TEST n."+str(idtest)+":          PROFILE 3D       #############"
 print "##################################################################################"
 
+geom = pg.built_in.Geometry()
 # control points of the generatrix
 x = [0.0, 0.1, 0.4, 0.6, 0.9]
 y = [0.0, 0.05, 0.09, 0.11, 0.4]
@@ -201,11 +181,11 @@ tck, u = interpolate.splprep([x,y,z], s=2)
 
 
 name = 'wingZero'
-Nslices = 100 # number of slices
-npt = 63 # points of the profile
+Nslices = 10 # number of slices
+npt = 13 # points of the profile
 t = np.linspace(0., 1., Nslices) # parametric space
 pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt) # creation of the 2d profile
-fi = Frame0(t[0], tck, type = 'Xnat')
+fi = parameter_frame(tck, t[0], mode = 'frenet')
 pol = pf.polyline()
 pol.to_frame(fi, scale = 0.5)
 li = pol.pop_to_geom(geom)
@@ -221,11 +201,11 @@ phys.append(sf)
 for i in range(Nslices-1):
     si = t[i]
     sip1 = t[i+1]
-    fip1 = Frame0(sip1, tck, type = 'Xnat')
+    fip1 = parameter_frame(tck, sip1, mode = 'frenet')
     pol = pf.polyline()
     pol.to_frame(fip1, scale = 0.5*np.cos(sip1*0.4*np.pi))
     lip1 = pol.pop_to_geom(geom)
-    for j in range(len(li)):
+    for j in range(len(li0)):
         lij = li0[j]
         lip1j = lip1[j]
         lti = geom.add_line(lij.points[0], lip1j.points[0])
@@ -240,8 +220,7 @@ ll = geom.add_line_loop(lloop)
 li0 = li
 sf = geom.add_plane_surface(ll)
 phys.append(sf)
-physS = geom.add_surface_loop(phys)
 geom.add_physical_surface(phys, label = 'profile')
 
+write_geo('test_'+str(idtest), geom)
 
-write_geo('tests', geom)

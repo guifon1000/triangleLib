@@ -15,28 +15,27 @@ class Polyline2D(list):    #always closed
         self.pt3d = []
         if self[0] == self[-1] :
             self.check_closed = True
-            print 'CLOSED POLYLINE'
         else : 
             self.check_closed = False
-            print 'OPEN POLYLINE'
         for i in range(len(self)):
             p = Point(self[i])
             self.pt3d.append( Point([0. , 0., 0.]))
 
 
-    def to_frame(self, f, **kwargs):
+    def to_frame(self, frame, **kwargs):
         try:
             fac_scale = kwargs['scale']
             fac_scale = 1.
         except:
             fac_scale = 1.
-        print f
-        for i in range(len(self.pt3d)) :
-            X = f[0][0] + (f[2][0] * self.pt3d[i][0] ) + (f[3][0] * self.pt3d[i][1] )
-            Y = f[0][1] + (f[2][1] * self.pt3d[i][1] ) + (f[3][1] * self.pt3d[i][0] )
-            Z = f[0][2] 
-            self.pt3d[i] = [X, Y, Z]
-            #print self.pt3d[i]
+
+
+        for i,p in enumerate(self):
+            loc  =  np.dot([0., p[0], p[1]], frame[1])
+            self.pt3d[i][0] = frame[0][0] + loc[0]
+            self.pt3d[i][1] = frame[0][1] + loc[1]
+            self.pt3d[i][2] = frame[0][2] + loc[2]
+
 
 
     def pop_to_geom(self, geom):
