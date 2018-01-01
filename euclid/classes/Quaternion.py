@@ -1,13 +1,40 @@
 from math import hypot
 import numpy as np
-
+from Vector import Vector
+import sys
+sys.path.append('../')
+from functions import dot,cross
 class Quaternion(list):
+
+    """
+    Quaternion = (w 1, x i, y j, z k)
+                  ^    ^    ^    ^
+                  s    v    v    v   
+                  
+                  (v = vectorial part, s = scalar part)
+    """
     def __init__(self, *largs):
         if len(*largs) == 4:
             super(Quaternion, self).__init__(*largs)
         else:
             super(Quaternion, self).__init__([0., 0., 0., 0.])
-        print self
+
+    @property
+    def scalar(self):
+        return self[0]
+
+
+    @property
+    def vector(self):
+        return Vector( (self[1], self[2], self[3]))
+
+    @property
+    def conjugate(self):
+        """
+        conj(q) = ( q[0] , -q[1] , -q[2] , -q[3] )
+        """
+        return Quaternion( (self[0], -self[1], -self[2], -self[3]) )
+
 
     def __str__(self):
         aff='('
@@ -26,20 +53,44 @@ class Quaternion(list):
     def __sub__(self,other):
         return Quaternion( [self[i] - other[i] for i in range(4)] )
 
-    def __mul__(self,other):
-        c=self.a*other.a-self.b*other.b.conjugate()
-        d=self.a*other.b+self.b*other.a.conjugate()
-        return Quaternion(c,d)
 
-    def __rmul__(self,k):
-        return Quaternion(self.a*k,self.b*k)
 
     def __abs__(self):
-        return hypot(abs(self.a),abs(self.b))
+        n2 = self * self.conjugate
+        return np.sqrt(n2[0]) 
 
-    def conjugate(self):
-        return Quaternion(self.a.conjugate(),-self.b)
 
+    def __mul__(self,other):
+        """
+        uses (sa,va) * (sb,vb) = (sa*sb - dot(va,vb)     , cross(va,vb) + sa*vb + sb*va )
+                                  SCALAR PART         VECTOR PART 
+        where s is scalar part, v is vectorial part (a Vector)
+        """
+        scalar = self.scalar * other.scalar - dot(self.vector, other.vector)
+        vector = cross(self.vector, other.vector) + self.scalar*other.vector + other.scalar*self.vector
+        return Quaternion( (scalar,vector[0],vector[1],vector[2]) )
+
+    def __rmul__(self, rval):
+        """
+        multiplication by a real scalar rval
+        """
+        return Quaternion( [rval*self[i] for i in range(4)])
+
+    def unit(self):
+        if abs(self) != 0. :
+            return Quaternion( [self[i]/abs(self) for i in range(4) ] )
+        else:
+            return 0.
+
+    def inverse(self):
+        if abs(self) != 0. :
+            conj = self.conjugate
+            norm2 = abs(self)**2.
+            return Quaternion( [conj[i]/norm2 for i in range(4) ] )
+        else:
+            return 0.
+
+################################################################################
     def __div__(self,other):
         return self*(1./abs(other)**2*other.conjugate())
 
@@ -48,12 +99,13 @@ class Quaternion(list):
         for i in range(n):
             r=r*self
         return r
-    def quaternion2matrix(self):
+    def to_matrix(self):
         mat=np.zeros((3,3),dtype=np.float)
-        x=self.a
-        y=self.b
-        z=self.c
-        w=self.d
+        unit = self.unit()
+        w = unit[0]
+        x = unit[1]
+        y = unit[2]
+        z = unit[3]
         mat[0,0]=1.-2*y**2.-2.*z**2. 
         mat[0,1]=2.*x*y-2.*z*w
         mat[0,2]=2.*x*z+2.*y*w

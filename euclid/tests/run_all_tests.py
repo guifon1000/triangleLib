@@ -13,7 +13,7 @@ from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from functions import parameter_frame
+from functions import parameter_frame, matrix_to_quaternion
 
 def write_geo(name,geom):
     fg = open(name+'.geo','w')
@@ -161,9 +161,26 @@ print "#########################################################################
 print "############################# TEST n."+str(idtest)+":          QUATERNION       #############"
 print "##################################################################################"
 
-q = Quaternion((0., 0., 0.))
+q1 = Quaternion((1., 0.5, 0.6, 0.9))
+print 'Q1 : '
+print q1
+print 'Q1 CONJUGATE : '
+print q1.conjugate
+print 'Q1 NORM : '
+print abs(q1)
+print 'Q1 INVERSE : '
+print q1.inverse()
+print 'Q1 * Q1^(-1)'
+print q1 * q1.inverse()
+print 'Q1 -> matrix'
+print q1.to_matrix()
 
 
+
+
+
+q2 = Quaternion((4., 0.25, 0.26, 0.49))
+print q1 * q2
 idtest += 1
 print "##################################################################################"
 print "############################# TEST n."+str(idtest)+":          PROFILE 3D       #############"

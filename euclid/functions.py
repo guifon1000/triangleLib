@@ -19,6 +19,22 @@ def dot(u,v):
     return u[0]*v[0]+u[1]*v[1]+u[2]*v[2]
 
 
+
+def matrix_to_quaternion(m):
+    diag=np.diag(m)
+    np.append(diag,1.)
+    
+    tr= np.trace(m)+1.
+    if tr>0.:
+        s=0.5/np.sqrt(tr)
+        x=(m[2,1]-m[1,2])*s
+        y=(m[0,2]-m[2,0])*s
+        z=(m[1,0]-m[0,1])*s
+        w=0.25/s
+        return Quaternion(w,x,y,z)
+         
+
+
 def parameter_frame(tck, s, mode = 'frenet'):
     from classes.Frame import Frame
     basis = []
