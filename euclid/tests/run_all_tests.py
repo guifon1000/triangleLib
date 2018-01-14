@@ -7,20 +7,14 @@ from classes.Vector import Vector
 from classes.Sphere import Sphere
 from classes.Frame import Frame
 from classes.Quaternion import Quaternion
+from classes.Extrusion import Extrusion
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
 from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from functions import parameter_frame, matrix_to_quaternion
-
-def write_geo(name,geom):
-    fg = open(name+'.geo','w')
-    for l in geom.get_code():
-        fg.write(l)
-    fg.close()
-
+from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo
 
 
 
@@ -138,8 +132,10 @@ geom = pg.built_in.Geometry()
 #mat[2] = zf
 
 
+vtk_elements = []
 
-
+pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 12) # creation of the 2d profile
+print type(pf)
 # control points of the generatrix
 x = [0.0, 0.69, 1.2, 2.7]
 y = [0.0, 0.14, 0.8, 1.4]
@@ -147,13 +143,25 @@ z = [0.0, 2.9, 3.8, 8.8]
 
 # tck, u represent the parametric 3d curve
 tck, u = interpolate.splprep([x,y,z], s=3)
-for s in np.linspace(0., 1., num = 200):
-    frame = parameter_frame(tck, s, mode = 'frenet')
-    pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = 12) # creation of the 2d profile
-    pol = pf.polyline()
-    pol.to_frame(frame)
-    pol.pop_to_geom(geom)
 
+frames = []
+pol = pf.polyline()
+
+
+for s in np.linspace(0., 1., num = 200):
+    frame = parameter_frame(tck, s, mode = 'Xnat')
+    vtk_elements.append(frame)
+    frames.append(frame)
+
+extrusion = Extrusion(pol, frames)
+    #pol.to_frame(frame)
+    #frames.append(pol)
+
+#for pol in frames :
+#    pol.pop_to_geom(geom)
+#    vtk_elements.append(pol)
+
+vtk_visu(vtk_elements)
 write_geo('test_'+str(idtest), geom)
 
 idtest += 1
@@ -175,7 +183,20 @@ print q1 * q1.inverse()
 print 'Q1 -> matrix'
 print q1.to_matrix()
 
+mat = np.zeros((3,3))
+mat = np.array([ [0., 1., 0. ] , [-1, 0., 0.] , [0., 0., 1.] ])
 
+
+print '=========================='
+print 'MATRIX :'
+print mat
+print '=========================='
+print 'MATRIX -> QUATERNION :'
+q =  matrix_to_quaternion(mat)
+print q 
+print '=========================='
+print 'QUATERNION -> MATRIX :'
+print q.to_matrix()
 
 
 
@@ -187,9 +208,11 @@ print "############################# TEST n."+str(idtest)+":          PROFILE 3D
 print "##################################################################################"
 
 geom = pg.built_in.Geometry()
+vtk_elements = []
+
 # control points of the generatrix
-x = [0.0, 0.1, 0.4, 0.6, 0.9]
-y = [0.0, 0.05, 0.09, 0.11, 0.4]
+x = [0.0, 0.1, 0.14, 0.6, 0.9]
+y = [0.0, 0.05, -0.09, 0.11, 0.4]
 z = [0.0, 0.3, 0.8, 1.2, 2.9]
 
 # tck, u represent the parametric 3d curve
@@ -198,13 +221,15 @@ tck, u = interpolate.splprep([x,y,z], s=2)
 
 
 name = 'wingZero'
-Nslices = 10 # number of slices
+Nslices = 40 # number of slices
 npt = 13 # points of the profile
 t = np.linspace(0., 1., Nslices) # parametric space
 pf = Profile(typ = 'fon',par = [0.82,0.21,0.13,0.08,0.029],npt = npt) # creation of the 2d profile
-fi = parameter_frame(tck, t[0], mode = 'frenet')
+fi = parameter_frame(tck, t[0], mode = 'Xnat')
 pol = pf.polyline()
 pol.to_frame(fi, scale = 0.5)
+
+
 li = pol.pop_to_geom(geom)
 
 lloop = []
@@ -218,9 +243,24 @@ phys.append(sf)
 for i in range(Nslices-1):
     si = t[i]
     sip1 = t[i+1]
-    fip1 = parameter_frame(tck, sip1, mode = 'frenet')
+    fip1 = parameter_frame(tck, sip1, mode = 'Xnat')
+    #print('    =============================')
+    #print('    frame matrix ')
+    #print('    '+str(fip1[1]))
+    #print('    frame matrix transpose')
+    #tm = np.array(fip1[1].transpose())
+    #print('    '+str(tm))
+    #print('\n    PRODUCT')
+    #print('    '+str(np.dot(fip1[1], tm)))
+    #print('\n    DETERMINANT')
+    #print('    '+str(np.linalg.det(tm)))
+    #print('    frame quaternion')
+    #quat = matrix_to_quaternion(tm)
+    #print('    '+str(quat))
+    #print('    frame matrix again...')
+    #print('    '+str(quat.to_matrix()))
     pol = pf.polyline()
-    pol.to_frame(fip1, scale = 0.5*np.cos(sip1*0.4*np.pi))
+    pol.to_frame(fip1, scale = 0.5*np.cos(sip1*1.7*np.pi))
     lip1 = pol.pop_to_geom(geom)
     for j in range(len(li0)):
         lij = li0[j]
@@ -231,6 +271,9 @@ for i in range(Nslices-1):
         sf = geom.add_surface(lloop)
         phys.append(sf)
     li0 = lip1
+
+
+
 lloop = []
 for l in lip1 : lloop.append(-l)
 ll = geom.add_line_loop(lloop)
@@ -240,4 +283,14 @@ phys.append(sf)
 geom.add_physical_surface(phys, label = 'profile')
 
 write_geo('test_'+str(idtest), geom)
+
+idtest += 1
+print "##################################################################################"
+print "############################# TEST n."+str(idtest)+":          SQUARE SECTION BEAM       #############"
+print "##################################################################################"
+
+
+
+
+
 

@@ -17,7 +17,7 @@ class Frame(list):
       [Bx, By, Bz] ]
     """
     def __init__(self, *largs):
-        super(Frame, self).__init__(*largs)
+	super(Frame, self).__init__(*largs)
 
 
 

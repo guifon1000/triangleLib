@@ -13,7 +13,7 @@ class Vector(list):
         return Vector( [self[i] + other[i] for i in range(len(self)) ] )
     
     def __neg__(self):
-        return Vector( [-self[i] for i in range(len(self))] )
+	return Vector( [-self[i] for i in range(len(self))] )
 
     @property
     def norm(self):

@@ -1,6 +1,6 @@
 import numpy as np
 from Point import Point
-
+from Polyline3D import Polyline3D
 
 
 class Polyline2D(list):    #always closed
@@ -35,7 +35,7 @@ class Polyline2D(list):    #always closed
             self.pt3d[i][0] = frame[0][0] + loc[0]
             self.pt3d[i][1] = frame[0][1] + loc[1]
             self.pt3d[i][2] = frame[0][2] + loc[2]
-
+        return Polyline3D(self.pt3d)    # ERROR !!!!
 
 
     def pop_to_geom(self, geom):

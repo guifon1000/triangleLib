@@ -3,7 +3,8 @@ import numpy as np
 from Vector import Vector
 import sys
 sys.path.append('../')
-from functions import dot,cross
+from functions import dot, cross
+
 class Quaternion(list):
 
     """
@@ -117,20 +118,6 @@ class Quaternion(list):
         mat[2,2]=1.-2*x**2.-2.*y**2.
         return mat
 
-
-def matrix2quaternion(m):
-    diag=np.diag(m)
-    np.append(diag,1.)
-    
-    tr= np.trace(m)+1.
-    if tr>0.:
-        s=0.5/np.sqrt(tr)
-        x=(m[2,1]-m[1,2])*s
-        y=(m[0,2]-m[2,0])*s
-        z=(m[1,0]-m[0,1])*s
-        w=0.25/s
-        return Quaternion(w,x,y,z)
-         
 
 if __name__=='__main__':
     q=Quaternion(0.5,-0.5,-0.5,-0.5)
