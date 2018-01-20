@@ -150,11 +150,68 @@ def parameter_frame(tck, s, mode = 'frenet'):
         basis.append(B)
         N = cross(T, B)
         basis.append(N)
+
+    if mode == 'Ynat':
+        t =  interpolate.splev(s , tck, der = 1)
+        xp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
+        T = xp.unit()
+        basis.append(T)
+        B = cross((0.,1.,0.), T)
+        basis.append(B)
+        N = cross(T, B)
+        basis.append(N)
+
+
+    if mode == 'Znat':
+        t =  interpolate.splev(s , tck, der = 1)
+        xp  = Vector( [float(t[0]), float(t[1]), float(t[2]) ])
+        T = xp.unit()
+        basis.append(T)
+        B = cross((0.,0.,1.), T)
+        basis.append(B)
+        N = cross(T, B)
+        basis.append(N)
+
     matrix = np.zeros((3,3), dtype =float)
     for i in range(3) : matrix[i] = basis[i]
     return Frame((orig, matrix))
 
 
 
+
+
+def write_fms_file(name,kwargs):
+    f = open(name+('.fms'),'w')
+    d=kwargs
+    print '------------------------------------------'
+    print '------------------ FMS PART --------------'
+    print '------------------------------------------'
+    print d.keys()
+    f.write('// patch names and types\n')
+    f.write(str(len(d['physical']))+'\n')
+    f.write('(\n')
+    for i,k in enumerate(d['physical']):
+        f.write(k[1]+'\n')
+        if 'cylinder' in k[1]:
+            f.write('wall\n')
+        else:
+            f.write('patch\n')
+        f.write('\n')
+    f.write(')\n\n')
+    f.write('// coordinates of surface points\n')
+    f.write(str(len(d['vertices']))+'\n')
+    f.write('(\n')
+    for p in d['vertices']:
+        f.write( '( %f %f %f) '%(p[0], p[1], p[2] )   )
+    f.write(')\n\n')
+    f.write('// list of triangles\n')
+    f.write(str(len(d['faces']))+'\n')
+    f.write('(\n')
+    for i,t in enumerate(d['faces']):
+        tp = '( ( %d %d %d )  %d ) '% (t[0] - 1 , t[1] - 1 , t[2] - 1 , d['belongs'][i] - 1 )
+        f.write(tp)
+    f.write(')\n\n')
+
+    for i in range(4):f.write('0()\n')                                                                     
 
 

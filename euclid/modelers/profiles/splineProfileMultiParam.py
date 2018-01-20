@@ -52,7 +52,7 @@ class Profile(object):
                     print '\n\n\nyou asked me for a naca 4 digits profile without giving me the parameters, \n',\
                             '...\n\n'
 
-    def polyline(self):
+    def polyline(self, closed = True):
         l = []
         revX = self.x[::-1]
         revextra = self.extra[::-1]
@@ -62,7 +62,7 @@ class Profile(object):
         for i in range(1,len(self.x)):
             p = (self.x[i], self.intra[i])
             l.append(p)
-        pl = Polyline2D(l,closed = True)
+        pl = Polyline2D(l,closed = closed)
         return pl
 
 def Naca4DigitsProfile(digits,N):
