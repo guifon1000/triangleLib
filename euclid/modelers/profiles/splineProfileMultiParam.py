@@ -3,8 +3,8 @@ from scipy.special import binom
 from scipy.interpolate import interp1d
 import sys
 import matplotlib.pyplot as plt
-sys.path.append('../classes/')
-from Polyline2D import Polyline2D
+sys.path.append('/home/fon/Developpement/trianglelib/')
+from euclid.classes.Polyline2D import Polyline2D
 name="foil"
 par1=0.1
 par2=0.05

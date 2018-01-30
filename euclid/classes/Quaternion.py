@@ -1,4 +1,4 @@
-from math import hypot
+import math
 import numpy as np
 from Vector import Vector
 import sys
@@ -118,12 +118,32 @@ class Quaternion(list):
         mat[2,2]=1.-2*x**2.-2.*y**2.
         return mat
 
+def matrix_to_quaternion(mat):
+    # mat is a 3x3 matrix
+    m00 = m[0][0]
+    m01 = m[0][1]
+    m02 = m[0][2]
+    m10 = m[1][0]
+    m11 = m[1][1]
+    m12 = m[1][2]
+    m20 = m[2][0]
+    m21 = m[2][1]
+    m22 = m[2][2]
+    
+    w = math.sqrt( max( 0., 1. + m00 + m11 + m22 ) ) / 2. 
+    x = math.sqrt( max( 0., 1. + m00 - m11 - m22 ) ) / 2. 
+    y = math.sqrt( max( 0., 1. - m00 + m11 - m22 ) ) / 2. 
+    z = math.sqrt( max( 0., 1. - m00 - m11 + m22 ) ) / 2. 
+    x = math.copysign( x, m21 - m12 ) 
+    y = math.copysign( y, m02 - m20 ) 
+    z = math.copysign( z, m10 - m01 ) 
+    return Quaternion((w, x, y, z)) 
 
 if __name__=='__main__':
-    q=Quaternion(0.5,-0.5,-0.5,-0.5)
+    q=Quaternion((0.5,-0.5,-0.5,0.5) )
     print q
     print '-------------------------------'
-    m=q.quaternion2matrix()
+    m = q.to_matrix()
     print m
     print '-------------------------------'
-    print matrix2quaternion(m).quaternion2matrix()-m
+    print matrix_to_quaternion(m)

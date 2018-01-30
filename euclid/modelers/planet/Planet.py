@@ -1,6 +1,6 @@
 import sys
-sys.path.append('../../classes')
-from Sphere import Sphere
+sys.path.append('/home/fon/Developpement/trianglLib/euclid/')
+from classes.Sphere import Sphere
 import random
 import numpy as np
 

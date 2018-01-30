@@ -28,16 +28,26 @@ class Triangulation(dict):
     """
     def __init__(self, points = None, faces = None, **kwargs):
         self['vertices'] = points
-        self['faces'] = faces
+        faces_2 = {}
         if kwargs.has_key('physical') and kwargs.has_key('belongs'):
             self['physical'] = kwargs['physical']
             self['belongs'] = kwargs['belongs']
+            for p in self['physical']:
+                faces_2[p[1]] = []
+                for i,f in enumerate(faces):
+                    if self['belongs'][i] == p[0]:
+                        faces_2[p[1]].append(i)
+        else:
+            faces_2['default'] = []
+            if faces:
+                faces_2['default'] = [f for f in faces]
+        self['faces'] = faces_2
+
 
     def load_file(self,name):
         f = json.load(open(name,'r'))
         try:
-            self['vertices'] = f['vertices']
-            self['faces'] = f['faces']
+            self = Triangulation(f['vertices'], f['faces'])
         except:
             print 'not enough info in '+name
             return 0
