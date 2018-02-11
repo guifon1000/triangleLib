@@ -179,20 +179,19 @@ def parameter_frame(tck, s, mode = 'frenet'):
 
 
 
-
 def write_fms_file(name,kwargs):
     f = open(name+('.fms'),'w')
     d=kwargs
     print '------------------------------------------'
     print '------------------ FMS PART --------------'
     print '------------------------------------------'
-    print d.keys()
+    print d['faces']
     f.write('// patch names and types\n')
-    f.write(str(len(d['physical']))+'\n')
+    f.write(str(len(d['faces']))+'\n')
     f.write('(\n')
-    for i,k in enumerate(d['physical']):
-        f.write(k[1]+'\n')
-        if 'cylinder' in k[1]:
+    for p in d['faces']:
+        f.write(str(p)+'\n')
+        if 'cylinder' in p:
             f.write('wall\n')
         else:
             f.write('patch\n')
@@ -205,11 +204,15 @@ def write_fms_file(name,kwargs):
         f.write( '( %f %f %f) '%(p[0], p[1], p[2] )   )
     f.write(')\n\n')
     f.write('// list of triangles\n')
-    f.write(str(len(d['faces']))+'\n')
+    ntri = 0
+    for k in d['faces']:
+        ntri += len(d['faces'][k])
+    f.write(str(ntri)+'\n')
     f.write('(\n')
-    for i,t in enumerate(d['faces']):
-        tp = '( ( %d %d %d )  %d ) '% (t[0] - 1 , t[1] - 1 , t[2] - 1 , d['belongs'][i] - 1 )
-        f.write(tp)
+    for i,group in enumerate(d['faces']):
+        for j,t in enumerate(d['faces'][group]):
+            tp = '( ( %d %d %d )  %d ) '% (t[0] - 1 , t[1] - 1 , t[2] - 1 , i   )
+            f.write(tp)
     f.write(')\n\n')
 
     for i in range(4):f.write('0()\n')                                                                     

@@ -145,7 +145,5 @@ class Extrusion(Triangulation):
                 name+'.msh', '>', name+'.mshlog'])
         tri = read_msh_file(name)
         super(Extrusion, self).__init__(
-                points=tri['vertices'],
-                faces=tri['faces'],
-                physical=tri['physical'],
-                belongs=tri['belongs']) 
+                vertices=tri['vertices'],
+                faces=tri['faces'])

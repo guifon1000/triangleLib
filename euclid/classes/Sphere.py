@@ -1,4 +1,4 @@
-from Triangulation import Triangulation
+from Triangulation import Triangulation, read_json_file
 from Point import Point
 from Vector import Vector
 import numpy as np
@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 class Sphere(Triangulation):
     def __init__(self, radius = 1., center = (0.,0.,0.), refin = 1 , **kwargs):
         self.radius = float(radius)
-        d = Triangulation()
-        d.load_file('../samples/icosahedron.json')
+        d = read_json_file('../samples/icosahedron.json')
         d.translate(center)
         for i in range(refin):
             d = d.refine_2()
@@ -19,9 +18,9 @@ class Sphere(Triangulation):
             _vertices.append(Point([d.cg[i] + (p[i]-d.cg[i])*radius/dist for i in range(3)]))
         self['vertices'] = _vertices
         self['faces'] = d['faces']
-        self['physical'] = [[1, 'default']]
-        self['belongs'] = [1 for i in range(len(self['faces'])) ]
-
+        #self['physical'] = [[1, 'default']]
+        #self['belongs'] = [1 for i in range(len(self['faces'])) ]
+        print self['faces']
 
     def mercator_map(self):
         self.plane_pos = []

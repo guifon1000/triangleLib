@@ -2,7 +2,7 @@ import sys
 sys.path.append('../')
 from classes.Point import Point
 from classes.Triangle import Triangle
-from classes.Triangulation import Triangulation, read_msh_file, merge
+from classes.Triangulation import Triangulation, read_msh_file, merge, read_json_file
 from classes.Vector import Vector
 from classes.Sphere import Sphere
 from classes.Frame import Frame
@@ -87,19 +87,14 @@ idtest += 1
 pretty_print('TEST n.' + str(idtest) + ': IMPORT JSON TRIANGULATION')
 
 
-d = Triangulation()
-d.load_file('../samples/icosahedron.json')
-print d.cg
-
+d = read_json_file('../samples/icosahedron.json')
+print d['faces']
 
 idtest += 1
 pretty_print('TEST n.' + str(idtest) + ': SPHERES')
 
-
 d.reorient_convex()
 d.translate((1.,0.,-2.))
-d = d.refine_2()
-d = d.refine_2()
 d = d.refine_2()
 d.write_obj_file('refined_icosahedron.obj')
 s1 = Sphere(refin = 0, center = (1.,1.,1.), radius = 0.3)
@@ -150,15 +145,11 @@ for s in np.linspace(0., 1., num = 5):
 
 extrusion = Extrusion(pol, frames, scales = scales, close_caps = True, mode = 'profile')
 
-print extrusion['physical']
-
-
-1/0
-
+revex = extrusion.reverse()
 write_fms_file('extrusion', extrusion)
 box = Box(Point((0.,-1.,0.)), 7.,7.,4.)
 write_fms_file('box', box)
-mer = merge( box, extrusion.reverse())
+mer = merge( box, revex)
 mer.write_obj_file('merge.obj')
 print 'writing the obj file for extrusion'
 extrusion.write_obj_file('extrusion.obj')

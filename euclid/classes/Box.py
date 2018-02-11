@@ -49,23 +49,13 @@ class Box(Triangulation):
         _points.append(p7)
 
 
-        _faces = [ [5,4,1], [5,8,4], \
-                   [3,6,2], [7,6,3], \
-                   [7,3,4], [4,8,7], \
-                   [6,1,2], [6,5,1], \
-                   [7,8,5], [7,5,6], \
-                   [4,3,1], [3,2,1] ]
+        _faces = { 'Xmin': [[5,4,1], [5,8,4]], \
+                   'Xmax': [[3,6,2], [7,6,3]], \
+                   'Ymin': [[7,3,4], [4,8,7]], \
+                   'Ymax': [[6,1,2], [6,5,1]], \
+                   'Zmin': [[7,8,5], [7,5,6]], \
+                   'Zmax': [[4,3,1], [3,2,1]] }
 
 
- 
-        _physical = [  [1, 'Xmin'] ,\
-                       [2, 'Xmax'] ,\
-                       [3, 'Ymin'] ,\
-                       [4, 'Ymax'] ,\
-                       [5, 'Zmin'] ,\
-                       [6, 'Zmax'] ]
-                   
-        _belongs = [1,1,2,2,3,3,4,4,5,5,6,6]
-        
-        super(Box, self).__init__(points = _points, faces = _faces, physical = _physical, belongs = _belongs)
+        super(Box, self).__init__(vertices = _points, faces = _faces)
 

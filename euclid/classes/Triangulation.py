@@ -26,8 +26,8 @@ class Triangulation(dict):
                   test if dict / array ?
 
     """
-    def __init__(self, points = None, faces = None, **kwargs):
-        self['vertices'] = points
+    def __init__(self, vertices = None, faces = None, **kwargs):
+        if vertices : self['vertices'] = [ [ float(c) for c in v ] for v in vertices ]
         faces_2 = {}
         if kwargs.has_key('physical') and kwargs.has_key('belongs'):
             self['physical'] = kwargs['physical']
@@ -37,20 +37,11 @@ class Triangulation(dict):
                 for i,f in enumerate(faces):
                     if self['belongs'][i] == p[0]:
                         faces_2[p[1]].append(i)
-        else:
-            faces_2['default'] = []
-            if faces:
-                faces_2['default'] = [f for f in faces]
+        elif type(faces) is dict:
+            faces_2 = faces
+        elif type(faces) is list:
+            faces_2['default'] = faces
         self['faces'] = faces_2
-
-
-    def load_file(self,name):
-        f = json.load(open(name,'r'))
-        try:
-            self = Triangulation(f['vertices'], f['faces'])
-        except:
-            print 'not enough info in '+name
-            return 0
 
     @property
     def cg(self):
@@ -67,11 +58,12 @@ class Triangulation(dict):
                     f.write('v %.4f %.4f %.4f\n' % (v[0],v[1],v[2]))
                 for v in vn:
                     f.write('vn %.4f %.4f %.4f\n' % (v[0],v[1],v[2]))
-                for i,t in enumerate(self['faces']):
-                    f.write('f')
-                    for p in t :
-                        f.write(" %d//%d" % (p, p))
-                    f.write('\n')
+                for group in self['faces']:
+                    for i,t in enumerate(self['faces'][group]):
+                        f.write('f')
+                        for p in t :
+                            f.write(" %d//%d" % (p, p))
+                        f.write('\n')
 
         elif '.json' in name :
             f = open(name, 'w')
@@ -91,19 +83,22 @@ class Triangulation(dict):
      
     def reorient_convex(self):
         # reorient the faces IF CONVEX
-        _new_faces = []
-        for f in self['faces']:
-            p0 = Point(self['vertices'][f[0]-1])
-            p1 = Point(self['vertices'][f[1]-1])
-            p2 = Point(self['vertices'][f[2]-1])
-            tr = Triangle((p0, p1, p2))
-            n0 = tr.normal.unit()
-            n1 = Vector(tr.cg)
-            if dot(n0,n1) < 0:
-                fi = (f[0], f[2], f[1])
-            else:
-                fi = f
-            _new_faces.append(fi)
+        _new_faces = {}
+        print self['faces']
+        for group in self['faces']:
+            _new_faces[group] = []
+            for f in self['faces'][group] :
+                p0 = Point(self['vertices'][f[0]-1])
+                p1 = Point(self['vertices'][f[1]-1])
+                p2 = Point(self['vertices'][f[2]-1])
+                tr = Triangle((p0, p1, p2))
+                n0 = tr.normal.unit()
+                n1 = Vector(tr.cg)
+                if dot(n0,n1) < 0:
+                    fi = (f[0], f[2], f[1])
+                else:
+                    fi = f
+                _new_faces[group].append(fi)
         self['faces'] = _new_faces
         # ok the convex is correctly oriented in the dict d
 
@@ -117,21 +112,22 @@ class Triangulation(dict):
         self['vertices'] = _vertices
 
     def reverse(self):
-        _faces = []
-        for f in self['faces']:
-            _faces.append([f[0], f[2], f[1]])
-        return Triangulation(points = self['vertices'],\
-                             faces = _faces,\
-                             physical = self['physical'],\
-                             belongs = self['belongs'])
+        _faces = {}
+        for group in self['faces']:
+            _faces[group] = []
+            for f in self['faces'][group]:
+                _faces[group].append([f[0], f[2], f[1]])
+        return Triangulation(vertices = self['vertices'],\
+                             faces = _faces)
     def get_triangles(self):
         _triangles = []
-        for f in self['faces']:
-            p = []
-            p.append(self['vertices'][f[0]-1])
-            p.append(self['vertices'][f[1]-1])
-            p.append(self['vertices'][f[2]-1])
-            _triangles.append(Triangle(p))
+        for group in self['faces']:
+            for f in self['faces'][group]:
+                p = []
+                p.append(self['vertices'][f[0]-1])
+                p.append(self['vertices'][f[1]-1])
+                p.append(self['vertices'][f[2]-1])
+                _triangles.append(Triangle(p))
         return _triangles
 
     def vertex_normals(self):
@@ -139,9 +135,10 @@ class Triangulation(dict):
         vertex_normals = []
         for i,p in enumerate(self['vertices']):
             _faces = []
-            for j,f in enumerate(self['faces']):
-                if (i+1) in f:
-                    _faces.append(triangles[j])
+            for group in self['faces']:
+                for j,f in enumerate(self['faces'][group]):
+                    if (i+1) in f:
+                        _faces.append(triangles[j])
             vertex_normal = [0., 0., 0.]
             for j,f in enumerate(_faces):
                 vertex_normal = [vertex_normal[k] + f.normal[k] for k in range(3) ]
@@ -153,59 +150,62 @@ class Triangulation(dict):
     def refine_2(self) :
         d2 = {}
         _vertices = []
-        _faces = []
+        _faces = {}
+          
+        print self['faces']
+        for group in self['faces']:
+            _faces[group] = []
+            for f in self['faces'][group]:
+                p0 = self['vertices'][f[0]-1]
+                p1 = self['vertices'][f[1]-1]
+                p2 = self['vertices'][f[2]-1]
+                if p0 in _vertices:
+                    i0 = _vertices.index(p0)
+                else:
+                    _vertices.append(p0)
+                    i0 = len(_vertices)-1
+                if p1 in _vertices:
+                    i1 = _vertices.index(p1)
+                else:
+                    _vertices.append(p1)
+                    i1 = len(_vertices)-1
+                if p2 in _vertices:
+                    i2 = _vertices.index(p2)
+                else:
+                    _vertices.append(p2)
+                    i2 = len(_vertices)-1
 
-        for f in self['faces']:
-            p0 = self['vertices'][f[0]-1]
-            p1 = self['vertices'][f[1]-1]
-            p2 = self['vertices'][f[2]-1]
-            if p0 in _vertices:
-                i0 = _vertices.index(p0)
-            else:
-                _vertices.append(p0)
-                i0 = len(_vertices)-1
-            if p1 in _vertices:
-                i1 = _vertices.index(p1)
-            else:
-                _vertices.append(p1)
-                i1 = len(_vertices)-1
-            if p2 in _vertices:
-                i2 = _vertices.index(p2)
-            else:
-                _vertices.append(p2)
-                i2 = len(_vertices)-1
+                p3 = Point([0.5*(p1[j]+p2[j]) for j in range(3)])
+                p4 = Point([0.5*(p2[j]+p0[j]) for j in range(3)])
+                p5 = Point([0.5*(p1[j]+p0[j]) for j in range(3)])
 
-            p3 = Point([0.5*(p1[j]+p2[j]) for j in range(3)])
-            p4 = Point([0.5*(p2[j]+p0[j]) for j in range(3)])
-            p5 = Point([0.5*(p1[j]+p0[j]) for j in range(3)])
-
-            if p3 in _vertices:
-                i3 = _vertices.index(p3)
-            else:
-                _vertices.append(p3)
-                i3 = len(_vertices)-1
-            if p4 in _vertices:
-                i4 = _vertices.index(p4)
-            else:
-                _vertices.append(p4)
-                i4 = len(_vertices)-1
-            if p5 in _vertices:
-                i5 = _vertices.index(p5)
-            else:
-                _vertices.append(p5)
-                i5 = len(_vertices)-1
-            i0 += 1 
-            i1 += 1 
-            i2 += 1 
-            i3 += 1 
-            i4 += 1 
-            i5 += 1
-            _faces.append((i4, i3, i2))
-            _faces.append((i5, i1, i3))
-            _faces.append((i5, i3, i4))
-            _faces.append((i0, i5, i4))
-        _vertices2 = []
-        return Triangulation(points = _vertices, faces = _faces)
+                if p3 in _vertices:
+                    i3 = _vertices.index(p3)
+                else:
+                    _vertices.append(p3)
+                    i3 = len(_vertices)-1
+                if p4 in _vertices:
+                    i4 = _vertices.index(p4)
+                else:
+                    _vertices.append(p4)
+                    i4 = len(_vertices)-1
+                if p5 in _vertices:
+                    i5 = _vertices.index(p5)
+                else:
+                    _vertices.append(p5)
+                    i5 = len(_vertices)-1
+                i0 += 1 
+                i1 += 1 
+                i2 += 1 
+                i3 += 1 
+                i4 += 1 
+                i5 += 1
+                _faces[group].append((i4, i3, i2))
+                _faces[group].append((i5, i1, i3))
+                _faces[group].append((i5, i3, i4))
+                _faces[group].append((i0, i5, i4))
+            _vertices2 = []
+        return Triangulation(vertices = _vertices, faces = _faces)
 
 
  
@@ -235,59 +235,62 @@ def read_msh_triangulation(fi, **kwargs):
 
 def merge(tri_1, tri_2):
     # tri_1 is chosen to be kept identical, tri_2 will be adapted
-    n_physical_1 = len(tri_1['physical'])
+    n_physical_1 = len(tri_1['faces'])
+    print('tri 1 has '+str(n_physical_1)+' physical groups of faces')
     n_pt_1 = len(tri_1['vertices'])
-    n_physical_2 = len(tri_2['physical'])
+    n_physical_2 = len(tri_2['faces'])
+    print('tri 2 has '+str(n_physical_2)+' physical groups of faces')
     n_pt_2 = len(tri_2['vertices'])
-    
+    _faces = tri_1['faces']
     # the physical groups of tri_2 are offset by n_physical_1
     # the index of the points are offset by n_pt_1
      
-    _physical_2 = [ [n_physical_1 + tri_2['physical'][i][0] , tri_2['physical'][i][1] ] for i in range(n_physical_2) ]
-    _physical = tri_1['physical'] + _physical_2
-
-    _belongs_2 = []
-    
-    for i,b in enumerate(tri_2['belongs']):
-        for ph in tri_2['physical']:
-            if (len(ph) == 2) and (ph[0] == b):
-                _belongs_2.append(int(ph[0]))
-            elif (len(ph)==1) and (ph[1] == 'default') :
-                _belongs_2.append(ph[0]) 
-
-    _belongs = tri_1['belongs'] + _belongs_2
-
-    _faces_2 = []
-    
-    for i,f in enumerate(tri_2['faces']):
-        new_triangle = [f[0] + n_pt_1 , f[1] + n_pt_1 , f[2] + n_pt_1 ]
-        _faces_2.append(new_triangle)
-
-    _faces = tri_1['faces'] + _faces_2
-
     _vertices = tri_1['vertices'] + tri_2['vertices']
+    for group in tri_2['faces']:
+        print group
+        _faces[group] = []
+        for f in tri_2['faces'][group]:
+            new_triangle = [f[0] + n_pt_1 , f[1] + n_pt_1 , f[2] + n_pt_1 ]
+            _faces[group].append(new_triangle)
 
-    return Triangulation(points = _vertices , faces = _faces, physical = _physical, belongs = _belongs)
+    return Triangulation(vertices = _vertices , faces = _faces)
+
+
+def read_json_file(name):
+    f = json.load(open(name,'r'))
+    try:
+        return Triangulation(vertices=f['vertices'], faces=f['faces'])
+    except:
+        print 'not enough info in '+name
+        return 0
+
+
+
+
+
 
 
  
 def read_msh_file(name,**kwargs):
+    print 'Reading MSH file'
     d = {}
     lmsh = open(name+'.msh','r').readlines()
+    d['faces'] = {}
+    physical_correspondance = {} 
     for i,l in enumerate(lmsh) :
         if '$PhysicalNames' in l:
-            d['physical']=[]
             N = int(lmsh[i+1])
             for j in range(N):
                 il = i+j+2
                 lpn = lmsh[il].split()
                 number = int(lpn[1])
                 name = str(lpn[2].replace('\"',''))
-                d['physical'].append([number,name])
+                d['faces'][name] = []
+                physical_correspondance[name] = number
             i = i+N+2
             break
     i0 = i
-
+    print physical_correspondance
     for i,l in enumerate(lmsh) :
         if '$Nodes' in l:
             d['vertices']=[]
@@ -303,14 +306,12 @@ def read_msh_file(name,**kwargs):
     flog = open('logFMS','w')
     for i,l in enumerate(lmsh) :
         if '$Elements' in l:
-            
-            d['faces']=[]
-            d['belongs']=[]
             N = int(lmsh[i+1])
             for j in range(N):
                 il = i+j+2
                 lpn = lmsh[il].split()
                 if int(lpn[1])==2:
+                    print lpn
                     flog.write('triangle :'+str(int(lpn[0]))+'\n')
                     tags = int(lpn[2])
                     phys = int(lpn[1+tags])
@@ -318,17 +319,23 @@ def read_msh_file(name,**kwargs):
                     p0 = int(lpn[2+tags+1]) + 1
                     p1 = int(lpn[2+tags+2]) + 1
                     p2 = int(lpn[2+tags+3]) + 1
-                    for k in d['physical']:
-                        if k[0]==phys:
-                            flog.write('triangle belongs to '+k[1]+'\n')
+                    for group in d['faces']:
+                        if phys==physical_correspondance[group]:
+                            flog.write('triangle belongs to '+group+'\n')
                             # why is this triangle written reversed ?
                             tri = (p2-1,p1-1,p0-1)
-                            group = k[0]-1
-                            pt = ((p2-1,p1-1,p0-1),k[0]-1)
-                            d['belongs'].append(k[0])
-                            d['faces'].append(Triangle(tri))
+                            #pt = ((p2-1,p1-1,p0-1),k[0]-1)
+                            d['faces'][group].append(Triangle(tri))
                             break
             i = i+N+2
             break
     i0 = i
-    return d  
+    return d 
+
+
+
+
+
+
+
+ 
