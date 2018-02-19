@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 from classes.Point import Point
+from classes.Line import Line
 from classes.Triangle import Triangle
 from classes.Triangulation import Triangulation, read_msh_file, merge, read_json_file
 from classes.Vector import Vector
@@ -9,13 +10,14 @@ from classes.Frame import Frame
 from classes.Quaternion import Quaternion
 from classes.Extrusion import Extrusion
 from classes.Box import Box
+from classes.Plane import Plane
 import pygmsh as pg
 from modelers.profiles.splineProfileMultiParam import  Profile
 from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo, write_fms_file
+from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo, write_fms_file, angle, cross, is_on_line, is_on_plane, intersect_2_lines
 
 
 def pretty_print(string, symbol = '-'):
@@ -49,15 +51,21 @@ pretty_print('TEST n.'+str(idtest) + ': TRIANGLE')
 
 
 # create three points
-p1 = Point((0.001,0.004,0.))
-p2 = Point((0.23,1.,0.))
-p3 = Point((1.,0.4,0.7))
+p1 = Point((0.001,0.0,0.))
+p2 = Point((0.23,0.5,0.))
+p3 = Point((1.,0.0,0.))
 
 points = [p1, p2, p3]
 
 geo_points = []
 # create a triangle
 t = Triangle(points)
+
+pl = Plane(points)
+
+
+
+
 
 print ' ----- A TRIANGLE ------ '
 print t
@@ -70,18 +78,68 @@ t = -t
 print t
 print 'attributes'
 print 'cog = '+str(t.cg)
+print 'circumcenter = '+str(t.circumcenter)
 #t.cg.pop_to_geom(geom)
 print 'normal = '+str(t.normal)
 
-idtest += 1
-pretty_print('TEST n.' + str(idtest) + ': VECTOR')
+print is_on_plane(t.circumcenter, pl)
+print is_on_plane(t.cg, pl)
+print is_on_plane(Point((0.,0.,0.)), pl)
+
+
+
+geom = pg.built_in.Geometry()
+
+gp0 = points[0].pop_to_geom(geom)
+gp1 = points[1].pop_to_geom(geom)
+gp2 = points[2].pop_to_geom(geom)
+
+cc = t.circumcenter
+gp3 = cc.pop_to_geom(geom)
+arc1 = geom.add_circle_arc(gp0, gp3, gp1)
+arc1 = geom.add_circle_arc(gp1, gp3, gp2)
+arc1 = geom.add_circle_arc(gp2, gp3, gp0)
+
 v = t.normal
 print "raw vector :"+str(v)
 print "norm 2 : "+str(v.norm2)
 print "norm 1 : "+str(v.norm)
 print "unit vector : "+str(v.unit())
 
+point_line = points[0]
+vector_line = Vector([points[1][i] - points[0][i] for i in range(3)])
+line = Line([point_line, vector_line])
+mid = Point([0.5 * (points[0][i] + points[1][i]) for i in range(3)])
 
+print is_on_line(mid, line)
+for i in range(100):
+    s = -50. + float(i)
+    pt = line.parameter_point(s)
+    pt.pop_to_geom(geom)
+
+
+
+write_geo('test_'+str(idtest), geom)
+
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': LINES')
+
+
+geom = pg.built_in.Geometry()
+
+p1 = points[0]
+v1 = Vector([points[1][i] - points[0][i] for i in range(3)])
+l1 = Line((p1,v1))
+p2 = points[2]
+v2 = Vector([points[1][i] - points[2][i] for i in range(3)])
+l2 = Line((p2,v2))
+print '======='
+print intersect_2_lines(l1, l2)
+print '--------------'
+print points[1]
+print '======='
+write_geo('test_'+str(idtest), geom)
 
 idtest += 1
 pretty_print('TEST n.' + str(idtest) + ': IMPORT JSON TRIANGULATION')
@@ -190,3 +248,91 @@ print q.to_matrix()
 
 q2 = Quaternion((4., 0.25, 0.26, 0.49))
 print q1 * q2
+
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': ARCS WITH BULGE')
+a = 1.
+points = [
+         Point((0,0,0)),
+         Point((a/2, a*np.sqrt(3.)/2, 0.)),
+         Point((a/2, a*np.sqrt(3.)/4, 0.)) #,
+         #Point((a, 0., 0))
+         ]
+
+segments = [(0,1), (1,2), (2,0), (0,3), (3,1), (3,2) ]
+segments = [(0,1), (1,2)]
+
+class Segment(dict):
+    def __init__(self, start_point, end_point, bulge = 0.):
+        self['start_point'] = start_point
+        self['end_point'] = end_point
+        self['bulge'] = point
+    #def pop_to_geom(self, geom):
+        
+            
+            
+#class PolylineCurve(list):
+        
+
+def center_arc(pt1, pt2, bulge):
+    if bulge > 0.:
+        inc_angle = 4. * np.arctan(bulge)
+    elif bulge < 0.:
+        inc_angle = -4. * np.arctan(bulge)
+    chord = Vector([pt2[i] - pt1[i] for i in range(3)])
+    mid = Point([0.5 * (pt1[i] + pt2[i]) for i in range(3) ])
+    vec = (chord.norm * 0.5 * bulge * cross(chord, Vector((0., 0., 1.))).unit())
+    summit = Point([mid[i] + vec[i] for i in range(3) ])
+    radius = chord.norm / (2. * np.sin(inc_angle/2.))
+    vec = radius * Vector([mid[i] - summit[i] for i in range(3)]).unit()
+    center = Point([summit[i] + vec[i] for i in range(3) ])
+    return center
+
+
+
+geom = pg.built_in.Geometry()
+center1 = center_arc(points[0], points[1], 0.1)
+center2 = center_arc(points[0], points[1], -0.4)
+lcar = 0.1
+p0 = geom.add_point(points[0], lcar)
+p1 = geom.add_point(points[1], lcar)
+c1 = geom.add_point(center1, lcar)
+c2 = geom.add_point(center2, lcar)
+arc1 = geom.add_circle_arc(p0, c1, p1)
+arc2 = geom.add_circle_arc(p0, c2, p1)
+
+loop = geom.add_line_loop([arc1, -arc2])
+sf = geom.add_plane_surface(loop)
+#geom.add_circle_arc(p0, p1, p2)
+
+write_geo('test_'+str(idtest), geom)
+
+
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': PLANAR EXTRUSION')
+thickness = 0.1
+geom = pg.built_in.Geometry()
+po1 = Point((0., 0., 0.))
+po2 = Point((1., 1., 0.))
+po3 = Point((2., 1., 0.))
+
+vec = Vector([po2[i] - po1[i] for i in range(3)]).unit()
+trans = cross([0.,0.,1.], vec).unit()
+
+start_1 = Point([po1[i] + 0.5 * thickness * trans[i] for i in range(3) ])
+start_2 = Point([po1[i] - 0.5 * thickness * trans[i] for i in range(3) ])
+
+p1 = po1.pop_to_geom(geom)
+p2 = po2.pop_to_geom(geom)
+s1 = start_1.pop_to_geom(geom)
+s2 = start_2.pop_to_geom(geom)
+lwall = geom.add_line(p1,p2)
+lthick = geom.add_line(s1,s2)
+wall = Vector([po2[i] - po1[i] for i in range(3)])
+geom.extrude(lthick, translation_axis=wall, rotation_axis=None, point_on_axis=po1, angle=0.)
+write_geo('test_'+str(idtest), geom)
+
+p1 = Plane((0.,0.,0.,0.))
+p2 = Plane((po1, po2, po3))

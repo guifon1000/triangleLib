@@ -26,6 +26,70 @@ def dot(u,v):
     return u[0]*v[0]+u[1]*v[1]+u[2]*v[2]
 
 
+def angle(u,v):
+    angle = np.arctan2(cross(u,v).norm,dot(u,v))
+    #
+    if angle == 0.:
+        return 0.
+    else:
+        return angle
+  
+    # warning : only in 2D case
+    #if dot(cross(u,v), Vector((0.,0.,1.0)))>0.:
+    #    return angle
+    #else :
+    #    print "gne"
+    #    return -angle
+
+
+def intersect_3_planes(p1,p2,p3):
+    A=np.array([p1[:3], p2[:3], p3[:3]])
+    b=np.array([-p1[3],-p2[3],-p3[3]]).transpose()
+    sol=np.linalg.solve(A, b)
+    return Point([sol[i] for i in range(3)])
+
+def intersect_2_lines(l1, l2):
+    from classes.Plane import Plane
+    v1 = l1[1]
+    v2 = l2[1]
+
+    normal_vect = cross(l1[1], l2[1])
+    intersection = None
+    if normal_vect.norm > 1.e-16:
+        unit_normal = normal_vect.unit()
+        components = [c**2. for c in unit_normal]
+        # np.argpartition(components, -2) gives the array of indices of growing component 
+        # (from smaller to biggest)
+        # ind = np.argpartition(components, -2)[:2] gives the indices of the 2 smallest 
+        # components of the vector
+        ind = np.argpartition(components, -2)[:2]
+
+        plane_1 = Plane((l1[0], unit_normal))
+
+        if is_on_plane(l2[0], plane_1):
+            i1 = ind[0]
+            i2 = ind[1]
+            A = np.array([[-v1[i1], v2[i1]], [-v1[i2], v2[i2]]])
+            b = np.array([l1[0][i1] - l2[0][i1], l1[0][i2] - l2[0][i2]]).transpose()
+            print A
+            print b
+            sol=np.linalg.solve(A, b)
+            print sol
+            intersection = l1.parameter_point(sol[0]) 
+    return intersection
+
+def is_on_line(pt, line):
+    c_ref = None
+    s= None
+    for i,coord in enumerate(line[1]):
+        if coord != 0.:
+            s = (pt[i] - line[0][i])/coord
+            break
+    pt_test = Point([line[0][i] + s * line[1][i] for i in range(3)])
+    return pt_test == pt
+
+def is_on_plane(pt, plane):
+    return (plane[0]*pt[0] + plane[1]*pt[1] + plane[2]*pt[2] + plane[3])**2. < 1.e-20
 
 def matrix_to_quaternion(m):
     from classes.Quaternion import Quaternion
