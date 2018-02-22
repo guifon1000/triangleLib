@@ -17,7 +17,8 @@ from modelers.planet.Planet import  Planet
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo, write_fms_file, angle, cross, is_on_line, is_on_plane, intersect_2_lines
+import matplotlib.pyplot as plt
+from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo, write_fms_file, angle, cross, is_on_line, is_on_plane, intersect_2_lines, intersect_2_segments, get_parameter, distance
 
 
 def pretty_print(string, symbol = '-'):
@@ -141,6 +142,124 @@ print points[1]
 print '======='
 write_geo('test_'+str(idtest), geom)
 
+
+from classes.Segment import Segment, OffsetSegment
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': INTERSECT 2 SEGMENTS')
+p1 = Point([0.,0.,0.001])
+p2 = Point([1.,1.,0.])
+p3 = Point([0.,1.,0.])
+p4 = Point([1.,0.,0.])
+seg1 = Segment([p2, p1])
+seg2 = Segment([p3, p4])
+print intersect_2_segments(seg1, seg2)
+
+
+
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': 2 SEGMENTS POLYLINE OFFSET')
+geom = pg.built_in.Geometry()
+data = {'points': [Point([0., 0., 0.]), 
+                   Point([3., 0., 0.]), Point([2., 1.25, 0.]), Point([1.85, 2.3,0.])],
+        'walls': [[0,2], [2,1], [3,2]],
+        'thickness': [0.15, 0.185, 0.11]}
+data1 = {'points': [Point([0., 0., 0.]), Point([3., 0., 0.]), Point([2., 1.25, 0.])],
+        'walls': [[0,2], [2,1]],
+        'thickness': [0.15, 0.185]}
+
+print data
+epsilon = 0.0001
+
+
+
+offsets = []
+
+
+for iwall, wall in enumerate(data['walls']):
+    # the directing vector
+    p1 = data['points'][wall[0]]
+    p2 = data['points'][wall[1]]
+    seg = Segment([p1, p2])
+    thickness = data['thickness'][iwall]
+    offsets.append(OffsetSegment(seg, thickness))
+
+
+linked_walls = []
+
+for i,walli in enumerate(data['walls']):
+    #linked_points = walli
+    neig = []
+    for j,wallj in enumerate(data['walls']):
+        if i!=j:
+            if (walli[0] in wallj) or (walli[1] in wallj):
+                neig.append(j)
+    linked_walls.append(neig)
+
+print '-----'
+print linked_walls
+
+
+
+
+
+for iwall,connected_walls in enumerate(linked_walls):
+    offsets[iwall].update_candidates([offsets[i] for i in connected_walls])
+
+
+
+for w in offsets:
+    #w.pop_to_geom(geom)
+    for p in w.candidates_1:
+        pcorner = p.pop_to_geom(geom)
+        pmid = w.l1[0].pop_to_geom(geom)
+        geom.add_line(pmid, pcorner)
+    for p in w.candidates_2:
+        pcorner = p.pop_to_geom(geom)
+        pmid = w.l2[0].pop_to_geom(geom)
+        geom.add_line(pmid, pcorner)
+write_geo('test_'+str(idtest), geom)
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': POLAR PARTITION OFFSET')
+
+data = {'points': [Point([0., 0., 0.]), 
+                    Point([10., 10., 0.]), 
+                    Point([-14., -6., 0.]),
+                    Point([-12., 6.8, 0.]),
+                    Point([11.2, -2.8, 0.]),
+                    Point([-4., 6., 0.])],
+        'walls': [[0,1,0.1], [0,2,0.25], [0,3,0.08], [0,4,0.06], [0,5,0.2]]}
+geom = pg.built_in.Geometry()
+
+
+test_sec = None
+ma = -1
+
+for ipoint,point in enumerate(data['points']):
+    sector = [point]
+    for iwall,wall in enumerate(data['walls']):
+        if ipoint in wall[:2]:
+            nex=None
+            if wall[0]==ipoint:
+                nex = data['points'][wall[1]]
+            else:
+                nex = data['points'][wall[0]]
+            length = distance(point, nex)
+            vec = Vector([nex[i]-point[i] for i in range(3)]).unit()
+            half = Point([point[i] + 0.5 * length * vec[i] for i in range(3)])
+            thick = float(wall[2])
+            sector.append([half, thick])
+    if len(sector)>ma:
+        test_sec = sector
+        ma = len(sector)
+
+secpts =  [test_sec[0]] + [ secp[0] for secp in test_sec[1:]]
+thck = [ secp[1] for secp in test_sec[1:]]
+from classes.TreeNode import TreeNode
+zob = TreeNode(secpts)
+zob.set_thicknesses(thck)
+zob.offset(default_thickness = 0.25)
 idtest += 1
 pretty_print('TEST n.' + str(idtest) + ': IMPORT JSON TRIANGULATION')
 

@@ -22,15 +22,25 @@ def cross(u,v):
     return vp
 
 
+def distance(p1, p2):
+    return Vector([p2[i] - p1[i] for i in range(3) ]).norm
+    
+
+
 def dot(u,v):
     return u[0]*v[0]+u[1]*v[1]+u[2]*v[2]
 
 
-def angle(u,v):
-    angle = np.arctan2(cross(u,v).norm,dot(u,v))
+def angle(u,v, plane_normal = None):
+    x = u.unit()
+    y = v.unit()
+    angle = np.arctan2(cross(x,y).norm,dot(x,y))
     #
-    if angle == 0.:
-        return 0.
+    if plane_normal:
+        if dot(cross(u,v), plane_normal)>0.:
+            return angle
+        else :
+            return -angle
     else:
         return angle
   
@@ -48,11 +58,21 @@ def intersect_3_planes(p1,p2,p3):
     sol=np.linalg.solve(A, b)
     return Point([sol[i] for i in range(3)])
 
+
+def get_parameter(pt, line):
+    if is_on_line(pt, line):
+        imax = np.argmax([np.abs(c) for c in line[1]])
+        return (pt[imax]-line[0][imax])/line[1][imax]
+    else:
+        return None
+
+
+
+
 def intersect_2_lines(l1, l2):
     from classes.Plane import Plane
     v1 = l1[1]
     v2 = l2[1]
-
     normal_vect = cross(l1[1], l2[1])
     intersection = None
     if normal_vect.norm > 1.e-16:
@@ -71,12 +91,30 @@ def intersect_2_lines(l1, l2):
             i2 = ind[1]
             A = np.array([[-v1[i1], v2[i1]], [-v1[i2], v2[i2]]])
             b = np.array([l1[0][i1] - l2[0][i1], l1[0][i2] - l2[0][i2]]).transpose()
-            print A
-            print b
+            #print A
+            #print b
             sol=np.linalg.solve(A, b)
-            print sol
+            #print sol
             intersection = l1.parameter_point(sol[0]) 
     return intersection
+
+
+def intersect_2_segments(seg1, seg2):
+    from classes.Line import Line
+    v1 = Vector([seg1[1][i] - seg1[0][i] for i in range(3)])
+    v2 = Vector([seg2[1][i] - seg2[0][i] for i in range(3)])
+    l1 = Line([seg1[0], v1])
+    seg1_parameters = sorted([get_parameter(seg1[0], l1), get_parameter(seg1[1], l1)])
+    l2 = Line([seg2[0], v2])
+    seg2_parameters = sorted([get_parameter(seg2[0], l2), get_parameter(seg2[1], l2)])
+    intersection = intersect_2_lines(l1,l2)
+    out = False
+    if intersection and ( seg1_parameters[0] < get_parameter(intersection, l1) < seg1_parameters[1]) and \
+            ( seg2_parameters[0] < get_parameter(intersection, l2) < seg2_parameters[1]):
+        out = True
+    return out
+
+
 
 def is_on_line(pt, line):
     c_ref = None
@@ -86,7 +124,7 @@ def is_on_line(pt, line):
             s = (pt[i] - line[0][i])/coord
             break
     pt_test = Point([line[0][i] + s * line[1][i] for i in range(3)])
-    return pt_test == pt
+    return distance(pt_test, pt)<1.e-10
 
 def is_on_plane(pt, plane):
     return (plane[0]*pt[0] + plane[1]*pt[1] + plane[2]*pt[2] + plane[3])**2. < 1.e-20
