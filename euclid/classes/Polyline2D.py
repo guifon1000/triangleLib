@@ -49,9 +49,8 @@ class Polyline2D(list):    #always closed
     def pop_to_geom(self, geom):
         pts = []
         lns = []
-        pol = self.pt3d
-        if self.check_closed:
-            for i,p in enumerate(pol[:-1]):
+        if self.is_closed:
+            for i,p in enumerate(self[:-1]):
                 p = geom.add_point(p,0.1)
                 pts.append(p)
             for i in range(len(pts)-1):

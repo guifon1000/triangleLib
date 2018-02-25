@@ -40,6 +40,7 @@ class TreeNode(list):
                 super(TreeNode,self).__init__(order)
 
     def offset(self, default_thickness = None):
+        points = []
         self.reorder_sectors()
         if default_thickness:
             thck = [float(default_thickness) for i in range(len(self))]
@@ -54,7 +55,6 @@ class TreeNode(list):
             print sectors
             print '----'
 
-            points = []
             #prev = None
             for isec,s in enumerate(sectors):
                 #print s
@@ -86,10 +86,14 @@ class TreeNode(list):
                     points.append(p2)
 
                     #geom.add_line(gp1,gp2)
-            import matplotlib.pyplot as plt
-            plt.plot([p[0] for p in points], [p[1] for p in points])
-            plt.axis('equal')
-            plt.show()
+        else:
+            th = thck[0]
+            v1 = Vector([self[1][i]-self[0][i] for i in range(3)]).unit()
+            t1 = cross(Vector([0., 0., 1.]), v1).unit()
+            p1 = Point([self[1][i] + 0.5 * th * t1[i] for i in range(3)])
+            p2 = Point([self[0][i] + 0.5 * th * t1[i] for i in range(3)])
+            p3 = Point([self[0][i] - 0.5 * th * t1[i] for i in range(3)])
+            p4 = Point([self[1][i] - 0.5 * th * t1[i] for i in range(3)])
+            points = [p1, p2, p3, p4]
+        return Polyline2D(points,closed = True)
 
-
-            

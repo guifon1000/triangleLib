@@ -19,7 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import matplotlib.pyplot as plt
 from functions import parameter_frame, matrix_to_quaternion, vtk_visu, write_geo, write_fms_file, angle, cross, is_on_line, is_on_plane, intersect_2_lines, intersect_2_segments, get_parameter, distance
-
+from io_functions import write_polylines_sets 
 
 def pretty_print(string, symbol = '-'):
     s = ''
@@ -234,8 +234,10 @@ geom = pg.built_in.Geometry()
 
 
 test_sec = None
-ma = -1
+all_tree_nodes = []
+all_thicknesses = []
 
+from classes.TreeNode import TreeNode
 for ipoint,point in enumerate(data['points']):
     sector = [point]
     for iwall,wall in enumerate(data['walls']):
@@ -250,16 +252,58 @@ for ipoint,point in enumerate(data['points']):
             half = Point([point[i] + 0.5 * length * vec[i] for i in range(3)])
             thick = float(wall[2])
             sector.append([half, thick])
-    if len(sector)>ma:
-        test_sec = sector
-        ma = len(sector)
+    all_tree_nodes.append(TreeNode([sector[0]] + [ secp[0] for secp in sector[1:]]))
+    all_thicknesses.append([ secp[1] for secp in sector[1:]])
 
-secpts =  [test_sec[0]] + [ secp[0] for secp in test_sec[1:]]
-thck = [ secp[1] for secp in test_sec[1:]]
-from classes.TreeNode import TreeNode
-zob = TreeNode(secpts)
-zob.set_thicknesses(thck)
-zob.offset(default_thickness = 0.25)
+
+polylines = []
+
+
+for itreenode, treenode in enumerate(all_tree_nodes): 
+    thck = all_thicknesses[itreenode]
+    treenode.set_thicknesses(thck)
+    pl = treenode.offset()
+    polylines.append(pl)
+    #pl.pop_to_geom(geom)
+write_geo('TreeNode', geom)
+
+idtest += 1
+pretty_print('TEST n.' + str(idtest) + ': SIMPLIFIED HOUSE 2D')
+
+geom = pg.built_in.Geometry()
+data = {'points': [Point([-5., 2.5, 0.]), 
+                    Point([5., 2.5, 0.]), 
+                    Point([5., -2.5, 0.]),
+                    Point([-5., -2.5, 0.])],
+        'walls': [[0,1], [1,2], [2,3], [3,0]]}
+polylines = []
+all_tree_nodes = []
+for ipoint,point in enumerate(data['points']):
+    sector = [point]
+    for iwall,wall in enumerate(data['walls']):
+        if ipoint in wall[:2]:
+            nex=None
+            if wall[0]==ipoint:
+                nex = data['points'][wall[1]]
+            else:
+                nex = data['points'][wall[0]]
+            length = distance(point, nex)
+            vec = Vector([nex[i]-point[i] for i in range(3)]).unit()
+            half = Point([point[i] + 0.5 * length * vec[i] for i in range(3)])
+            sector.append([half, thick])
+    all_tree_nodes.append(TreeNode([sector[0]] + [ secp[0] for secp in sector[1:]]))
+
+
+
+for itreenode, treenode in enumerate(all_tree_nodes): 
+    #thck = all_thicknesses[itreenode]
+    #treenode.set_thicknesses(thck)
+    pl = treenode.offset(default_thickness = 0.2)
+    polylines.append(pl)
+    pl.pop_to_geom(geom)
+write_geo('SimpleHouse', geom)
+
+write_polylines_sets('zob', walls=polylines)
 idtest += 1
 pretty_print('TEST n.' + str(idtest) + ': IMPORT JSON TRIANGULATION')
 
